@@ -1,0 +1,26 @@
+[project]
+name = "seedsigner-ocr"
+version = "0.1.0"
+description = "Training pipeline of the SeedSigner handwritten-word recognizer"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pillow",
+    # imported by seedsigner.helpers.handwriting (SeedSigner source on PYTHONPATH)
+    "embit",
+]
+
+[project.optional-dependencies]
+# train, filter
+train = ["torch"]
+# names
+names = ["pyarrow"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["seedsigner_ocr"]
