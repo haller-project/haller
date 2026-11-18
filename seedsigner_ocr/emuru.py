@@ -27,7 +27,7 @@ import os
 import time
 
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageOps
 
 from seedsigner.helpers.handwriting.preprocess import INPUT_HEIGHT, MAX_INPUT_WIDTH, locate_word, remove_long_runs
 from .synth import compose_line, crop_ink, legible, photograph
@@ -97,7 +97,7 @@ def style_line(split_dir: str, name: str, rng: np.random.Generator):
         kept.append(b)
     if len(kept) < 2 or sum(len(b[4]) for b in kept) < 8 or (kept[-1][2] - left) * scale < STYLE_WIDTH[0]:
         return None
-    page = Image.open(os.path.join(split_dir, name + ".jpg")).convert("L")
+    page = ImageOps.exif_transpose(Image.open(os.path.join(split_dir, name + ".jpg"))).convert("L")
     pad = 0.1 * (bottom - top)
     crop = page.crop((max(0, int(left - pad)), int(top), min(page.width, int(kept[-1][2] + pad)), int(bottom)))
     a = np.array(clean(crop.resize((max(8, int(crop.width * scale)), STYLE_HEIGHT), Image.BILINEAR)))
@@ -111,9 +111,10 @@ def style_line(split_dir: str, name: str, rng: np.random.Generator):
 
 
 
-def pick_styles(split_dir: str, count: int, rng: np.random.Generator) -> list:
-    """[(page name, image, transcription)], one line per page."""
-    pages = sorted(n[:-5] for n in os.listdir(split_dir) if n.endswith(".json"))
+def pick_styles(split_dir: str, count: int, rng: np.random.Generator, pages: list = None) -> list:
+    """[(page name, image, transcription)], one line per page, among `pages`
+    (default: all the pages of the split)."""
+    pages = sorted(pages or (n[:-5] for n in os.listdir(split_dir) if n.endswith(".json")))
     styles = []
     for i in rng.permutation(len(pages)):
         found = style_line(split_dir, pages[i], rng)
@@ -201,12 +202,13 @@ def is_written(a: np.ndarray) -> bool:
 
 
 
-def generate(styles: list, words: list, raw_dir: str, per_style: int, batch: int, rng: np.random.Generator):
+def generate(styles: list, words: list, raw_dir: str, per_style: int, batch: int, rng: np.random.Generator,
+             cases: tuple = ("lower", "upper")):
     """Writes RAW_DIR/<style index>.npz: x (n, 64, W) generated words padded
     with white, w (n,) widths, text (n,) as written (case kept)."""
     os.makedirs(raw_dir, exist_ok=True)
     # every (word, case) pair about the same number of times, spread over the styles
-    pairs = [(w, case) for w in words for case in ("lower", "upper")]
+    pairs = [(w, case) for w in words for case in cases]
     order = np.concatenate([rng.permutation(len(pairs)) for _ in range(-(-len(styles) * per_style // len(pairs)))])
     model = None
     t0, done = time.time(), 0
@@ -293,15 +295,18 @@ def main():
     p.add_argument("--per-style", type=int, default=60)
     p.add_argument("--batch", type=int, default=12)
     p.add_argument("--generate-only", action="store_true")
+    p.add_argument("--lower", action="store_true", help="lowercase words only")
+    p.add_argument("--pages", help="file listing the GNHK pages to take the styles from, one name per line")
     a = p.parse_args()
 
     rng = np.random.default_rng(a.seed)
     import torch
     torch.manual_seed(a.seed)
     words = [w.strip() for w in open(a.bip39) if w.strip()]
-    styles = pick_styles(a.split_dir, a.styles, rng)
+    pages = open(a.pages).read().split() if a.pages else None
+    styles = pick_styles(a.split_dir, a.styles, rng, pages)
     print(len(styles), "styles", flush=True)
-    generate(styles, words, a.raw_dir, a.per_style, a.batch, rng)
+    generate(styles, words, a.raw_dir, a.per_style, a.batch, rng, ("lower",) if a.lower else ("lower", "upper"))
     if a.generate_only:
         return
     samples, labels, style_ids = compose(a.raw_dir, len(styles), np.random.default_rng(a.seed + 1))

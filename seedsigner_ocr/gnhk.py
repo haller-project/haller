@@ -14,7 +14,7 @@ import json
 import os
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 
 from seedsigner.helpers.handwriting.preprocess import INPUT_HEIGHT, MAX_INPUT_WIDTH, locate_word
 
@@ -74,7 +74,7 @@ def main():
     page_path, page = None, None
     for image, quad, label in words(a.split_dir):
         if image != page_path:
-            page_path, page = image, Image.open(image).convert("L")
+            page_path, page = image, ImageOps.exif_transpose(Image.open(image)).convert("L")
         for _ in range(a.variants):
             crop = straighten(page, quad, rng, len(label))
             if crop is None:
