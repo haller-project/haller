@@ -81,6 +81,9 @@ def main():
     p.add_argument("--batch", type=int, default=256)
     p.add_argument("--lr", type=float, default=2e-3)
     p.add_argument("--seed", type=int, default=1)
+    p.add_argument("--val", help="second validation set (x, w, y): the best epoch maximizes the mean of the "
+                                 "simulated EVAL score and of this one")
+    p.add_argument("--keep-epochs", action="store_true", help="also write the weights of every epoch (OUT_eN.npz)")
     a = p.parse_args()
 
     torch.manual_seed(a.seed)
@@ -91,6 +94,9 @@ def main():
     tables = dictionary_tables(words, device)
     ev = np.load(a.eval)
     ev_x, ev_w, ev_y, ev_real = ev["x"], ev["w"].astype(np.int64), [str(y) for y in ev["y"]], ev["reel"].astype(bool)
+    if a.val:
+        va = np.load(a.val)
+        va_x, va_w, va_y = va["x"], va["w"].astype(np.int64), [str(y) for y in va["y"]]
 
     net = WordNet(a.channels, a.hidden).to(device)
     print("parameters", sum(p.numel() for p in net.parameters()), flush=True)
@@ -122,12 +128,17 @@ def main():
                 n_batches += 1
         sim = evaluate(net, ev_x, ev_w, ev_y, words, tables, device, np.nonzero(~ev_real)[0])
         real = evaluate(net, ev_x, ev_w, ev_y, words, tables, device, np.nonzero(ev_real)[0])
+        val = evaluate(net, va_x, va_w, va_y, words, tables, device, np.arange(len(va_y))) if a.val else None
         print(f"epoch {epoch + 1}/{a.epochs} loss {loss_sum / n_batches:.4f} "
-              f"words: simulated {100 * sim:.2f} % real {100 * real:.2f} % {time.time() - t0:.0f} s", flush=True)
-        if sim >= best:  # selection on simulated photos only; real photos are a test set
-            best = sim
+              f"words: simulated {100 * sim:.2f} % real {100 * real:.2f} %"
+              + (f" val {100 * val:.2f} %" if a.val else "") + f" {time.time() - t0:.0f} s", flush=True)
+        if a.keep_epochs:
+            np.savez(a.out.replace(".npz", f"_e{epoch + 1}.npz"), **net.export())
+        score = (sim + val) / 2 if a.val else sim
+        if score >= best:  # selection on simulated photos only; real photos are a test set
+            best = score
             np.savez(a.out, **net.export())
-            json.dump(dict(channels=a.channels, hidden=a.hidden, epoch=epoch + 1, simulated=sim, real=real),
+            json.dump(dict(channels=a.channels, hidden=a.hidden, epoch=epoch + 1, simulated=sim, real=real, val=val),
                       open(a.out.replace(".npz", ".json"), "w"), indent=1)
 
 
