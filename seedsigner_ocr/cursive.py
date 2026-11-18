@@ -169,8 +169,8 @@ def desc_loop_right(x: float, depth: float, loop: float, exit_x: float) -> list:
 
 def bowl(x: float, top: float = 1.0) -> list:
     """Counterclockwise oval of a, d, g, q (and o), starting at its top right."""
-    return [(x + 0.75, top * 0.88, -85), (x + 0.4, top, 45), (x + 0.02, 0.5 * top, 85), (x + 0.38, 0.0, 85),
-            (x + 0.76, 0.45 * top, 75)]
+    return [(x + 0.8, top * 0.95, -85), (x + 0.4, top, 45), (x + 0.02, 0.5 * top, 85), (x + 0.38, 0.0, 85),
+            (x + 0.8, 0.6 * top, 80)]
 
 
 
@@ -185,9 +185,9 @@ def cursive_letters(h) -> dict:
     french = h.style == "french"
     L_ = {}
 
-    stem = 0.78
+    stem = 0.8
     L_["a"] = Letter(bowl(0) + [(stem, 1.0, 0), (stem, 0.12, 0), exit_low(1.1)], 1.1)
-    L_["c"] = Letter([(0.72, 0.85, -75), (0.42, 1.0, 50), (0.02, 0.5, 85), (0.4, 0.0, 85), (0.95, 0.32, 40)], 0.95)
+    L_["c"] = Letter([(0.55, 0.98, -70), (0.75, 0.8, -110), (0.42, 1.0, 60), (0.02, 0.5, 85), (0.4, 0.0, 85), (0.95, 0.32, 40)], 0.95)
     d_top = A * (0.75 if french else 0.95)
     d_stem = [(stem + 0.02, d_top, 0), (stem, 0.12, 0)] if h.alt["d"] == 0 else \
              [(stem + 0.45 * L, d_top * 0.8, 20), (stem + 0.1 * L, d_top, 85), (stem - 0.2 * L, d_top - 0.4, 70), (stem, 0.12, 10)]
@@ -425,7 +425,9 @@ class CursiveHand:
                         for lift in letter.lifts]
             high, started = letter.high_exit, True
             x += (letter.width + self.spacing) * self.width
-        if pieces and rng.random() < 0.3 and len(pieces[-1]) > 2:  # unfinished exit stroke
+        if high and current is not None and len(current) > 2:  # no high outstroke after the last letter
+            current.pop()
+        elif pieces and rng.random() < 0.3 and len(pieces[-1]) > 2:  # unfinished exit stroke
             last = pieces[-1][-1]
             pieces[-1][-1] = (last[0] - 0.12, last[1] - 0.1, last[2])
         return pieces + delayed
