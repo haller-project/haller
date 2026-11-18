@@ -51,9 +51,10 @@ class Vocabulary:
 
 
 
-def apply_case(word: str, rng: np.random.Generator) -> str:
+def apply_case(word: str, rng: np.random.Generator, lower_share: float = 0.35) -> str:
+    """Capitals, lowercase (lower_share) or capitalized (0.15)."""
     r = rng.random()
-    if r < 0.5:
+    if r < 0.85 - lower_share:
         return word.upper()
     if r < 0.85:
         return word.lower()
@@ -136,13 +137,13 @@ class FontHand:
     _cache = {}
 
     @classmethod
-    def random(cls, fonts: list, size: float, rng: np.random.Generator):
+    def random(cls, fonts: list, size: float, rng: np.random.Generator, per_letter_share: float = 0.5):
         return cls(
             path=fonts[rng.integers(len(fonts))],
             size=int(size),
             slant=float(rng.normal(0, 6)),
             stroke_width=stroke_for(size, rng),
-            per_letter=bool(rng.random() < 0.5),
+            per_letter=bool(rng.random() < per_letter_share),
             jitter=float(rng.uniform(0.2, 1.0)),
             tracking=float(rng.uniform(-0.02, 0.15)),
         )
@@ -375,23 +376,26 @@ def photograph(line: Image.Image, size: int, rng: np.random.Generator) -> tuple[
 # ---------------------------------------------------------------------------
 class Synthesizer:
 
-    def __init__(self, vocabulary: Vocabulary, fonts: list, emnist: EmnistLetters, font_share: float = 0.65):
+    def __init__(self, vocabulary: Vocabulary, fonts: list, emnist: EmnistLetters, font_share: float = 0.65,
+                 lower_share: float = 0.35, per_letter_share: float = 0.5):
         self.vocabulary = vocabulary
         self.fonts = fonts
         self.emnist = emnist
         self.font_share = font_share
+        self.lower_share = lower_share
+        self.per_letter_share = per_letter_share
 
 
     def hand(self, size: float, rng: np.random.Generator):
         if rng.random() < self.font_share:
-            return FontHand.random(self.fonts, size, rng)
+            return FontHand.random(self.fonts, size, rng, self.per_letter_share)
         return EmnistHand.random(self.emnist, size, rng)
 
 
     def sample(self, rng: np.random.Generator) -> tuple[np.ndarray, str] | None:
         """(normalized ink map, label) or None. Labels are lowercase letters and
         digits only: case and punctuation are not predicted."""
-        word = apply_case(self.vocabulary.word(rng), rng)
+        word = apply_case(self.vocabulary.word(rng), rng, self.lower_share)
         text = line_prefix(rng) + word
         size = rng.uniform(36, 90)
         hand = self.hand(size, rng)
@@ -403,7 +407,8 @@ class Synthesizer:
         target = write(text)
         neighbors = []
         if rng.random() < 0.5:
-            neighbors = [write(line_prefix(rng) + apply_case(self.vocabulary.word(rng), rng)) for _ in range(2)]
+            neighbors = [write(line_prefix(rng) + apply_case(self.vocabulary.word(rng), rng, self.lower_share))
+                         for _ in range(2)]
         line, (t0, t1) = compose_line(target, neighbors, int(size), rng)
         photo, scale = photograph(line, int(size), rng)
         found = locate_word(photo)

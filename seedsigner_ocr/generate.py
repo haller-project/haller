@@ -26,10 +26,13 @@ def main():
     p.add_argument("--emnist", required=True)
     p.add_argument("--bip39", required=True)
     p.add_argument("--other", required=True)
+    p.add_argument("--cursive", action="store_true",
+                   help="lowercase writing (85 %%) in the fonts only, rendered as whole words (cursive joins kept)")
     a = p.parse_args()
 
     rng = np.random.default_rng(a.seed)
-    synth = Synthesizer(Vocabulary.load(a.bip39, a.other), list_fonts(a.fonts), EmnistLetters(a.emnist))
+    options = dict(font_share=1.0, lower_share=0.85, per_letter_share=0.0) if a.cursive else {}
+    synth = Synthesizer(Vocabulary.load(a.bip39, a.other), list_fonts(a.fonts), EmnistLetters(a.emnist), **options)
     x = np.zeros((a.count, INPUT_HEIGHT, MAX_INPUT_WIDTH), np.uint8)
     widths, labels = np.zeros(a.count, np.int16), []
     n, t0 = 0, time.time()
