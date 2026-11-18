@@ -70,7 +70,7 @@ def main():
     a = p.parse_args()
     rng = np.random.default_rng(a.seed)
 
-    samples, labels = [], []
+    samples, labels, pages = [], [], []
     page_path, page = None, None
     for image, quad, label in words(a.split_dir):
         if image != page_path:
@@ -86,10 +86,12 @@ def main():
                 continue
             samples.append(found[0])
             labels.append(label)
+            pages.append(os.path.basename(image)[:-4])
     x = np.zeros((len(samples), INPUT_HEIGHT, MAX_INPUT_WIDTH), np.uint8)
     for i, s in enumerate(samples):
         x[i, :, :s.shape[1]] = s
-    np.savez_compressed(a.out, x=x, w=np.array([s.shape[1] for s in samples], np.int16), y=np.array(labels))
+    np.savez_compressed(a.out, x=x, w=np.array([s.shape[1] for s in samples], np.int16), y=np.array(labels),
+                        page=np.array(pages))
     print(len(samples), "samples")
 
 
