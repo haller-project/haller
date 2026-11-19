@@ -392,10 +392,13 @@ class Synthesizer:
         return EmnistHand.random(self.emnist, size, rng)
 
 
-    def sample(self, rng: np.random.Generator) -> tuple[np.ndarray, str] | None:
+    def sample(self, rng: np.random.Generator, word_rng: np.random.Generator = None) -> tuple[np.ndarray, str] | None:
         """(normalized ink map, label) or None. Labels are lowercase letters and
-        digits only: case and punctuation are not predicted."""
-        word = apply_case(self.vocabulary.word(rng), rng, self.lower_share)
+        digits only: case and punctuation are not predicted. Words are drawn from
+        word_rng if given, so that shards differing only in vocabulary share the
+        same hands and photographs."""
+        word_rng = word_rng or rng
+        word = apply_case(self.vocabulary.word(word_rng), rng, self.lower_share)
         text = line_prefix(rng) + word
         size = rng.uniform(36, 90)
         hand = self.hand(size, rng)
@@ -407,7 +410,7 @@ class Synthesizer:
         target = write(text)
         neighbors = []
         if rng.random() < 0.5:
-            neighbors = [write(line_prefix(rng) + apply_case(self.vocabulary.word(rng), rng, self.lower_share))
+            neighbors = [write(line_prefix(rng) + apply_case(self.vocabulary.word(word_rng), rng, self.lower_share))
                          for _ in range(2)]
         line, (t0, t1) = compose_line(target, neighbors, int(size), rng)
         photo, scale = photograph(line, int(size), rng)
