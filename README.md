@@ -42,6 +42,32 @@ through the same code; a change to `preprocess.py` requires regenerating all dat
   lighting, shadows, scale, focus or motion blur, noise, JPEG) and normalized.
   Samples that become illegible or where normalization picks a neighboring line
   are discarded.
+  *Why 60 %.* Since the device only outputs BIP39 words, training on BIP39
+  words only could make the network learn the 2,048 word shapes as a prior
+  (Wan et al. 2020, "Vocabulary Reliance in Scene Text Recognition") on top of
+  the dictionary decoding, and become overconfident between close BIP39 words.
+  This was tested with matched shards (`generate --matched --bip39-share S`:
+  same hands and photographs sample by sample, only the words differ), 8 x
+  50,000 words at 100, 80 and 60 % BIP39, plus filtered GNHK and Emuru, model
+  A's architecture and schedule, two training seeds each. Engine replayed with
+  one model on 1,605 photos (sure and exact / exact / false sure, sum of both
+  seeds; capitals 1,301 photos, cursive 301):
+
+  | BIP39 share | All photos | Capitals | Cursive | Letters, BIP39 / unseen words |
+  |---|---|---|---|---|
+  | 100 % | 2199 / 2399 / 6 | 2116 / 2226 / 6 | 83 / 171 / 0 | 50.2 / 44.1 % |
+  | 80 % | 2180 / 2373 / 4 | 2107 / 2225 / 4 | 72 / 147 / 0 | 49.4 / 44.5 % |
+  | 60 % | 2191 / 2397 / 3 | 2112 / 2232 / 1 | 79 / 163 / 2 | 49.8 / 44.1 % |
+
+  The differences are within the training-seed noise (the same recipe varies
+  by up to 16 sure and exact seeds and 7 points on GNHK test between seeds).
+  Letter-by-letter reading of words never seen in training (English words
+  outside BIP39 and `other_words.txt`) is the same at every share, and almost
+  never turns into a BIP39 word (0.1 to 0.3 %); word-level calibration (ECE)
+  and confusions between BIP39 words at edit distance 1-2 do not change with
+  the share. Most false sure seeds come from page detection (a truncated word
+  whose end is another BIP39 word, e.g. "pen" for "spend", or a wrong word
+  count), at every share. No share is better: 60 % is kept.
 - **Real words** from GNHK (`gnhk.py`): each annotated word is straightened and
   cropped with random margins, so that the crop includes part of its
   surroundings as on a SeedSigner line, then normalized.
