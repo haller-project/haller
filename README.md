@@ -213,13 +213,20 @@ independently, with other random seeds.
 | B | 689 / 2 / 712 | 382 / 0 / 401 |
 | B2 | 682 / 2 / 713 | 388 / 0 / 402 |
 | C2 alone | 1056 / 1 / 1106 (both sets) | |
-| A, then C2 (shipped) | 691 / 0 / 717 | 390 / 0 / 403 |
+| A, then C2 | 691 / 0 / 717 | 390 / 0 / 403 |
+| A, then C2 or blend of A and C2 (shipped) | 692 / 0 / 718 | 391 / 0 / 403 |
 
 The models have the same architecture and speed. A alone never reports a
 wrong seed as valid on these photos; C2 alone reads lowercase and cursive much
 better but capitals slightly worse. The shipped engine reads with A, and reads
-again with C2 the photos whose seed is not valid (a C2 seed needs a
-probability of 0.85 to be valid).
+again the photos whose seed is not valid, with C2 (a C2 seed needs a
+probability of 0.85 to be valid) and with a blend of both: for each word, the
+weighted sum of the log-probabilities of the 2,048 words given by A (0.65) and
+C2 (0.35), which needs no more network passes. The most probable reading is
+kept. Without false sure seeds, the blend weight can be anywhere between 0.55
+and 0.8; below, the blend reports wrong seeds as valid, and so does the sum of
+both (product of experts). A style classifier choosing the model per page
+(capitals, lowercase, cursive) did not do better.
 
 Lowercase and cursive, same engine: 301 simulated pages written in 13 fonts
 never used in training (Playwrite FR Trad, GB J, DE SAS, IT Moderna, US
@@ -232,7 +239,9 @@ test split (BIP39 words written in lowercase, 2,980 crops):
 | Wide (24/48/96) | 68 / 1 / 108 | 64.3 % |
 | B | 56 / 2 / 104 | 67.1 % |
 | C2 alone | 112 / 1 / 144 | 69.4 % |
-| A, then C2 (shipped) | 84 / 0 / 144 | |
+| A, then C2 | 84 / 0 / 144 | |
+| Blend of A (0.3 to 0.5) and C2, words only | | 71.2 % |
+| A, then C2 or blend (shipped) | 95 / 0 / 147 | |
 
 <!-- EVAL_V3: results on a new set of real photos (24 test seeds, varied paper,
 pens, writers and lighting, taken with the SeedSigner camera) go here. -->
