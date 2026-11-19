@@ -1,7 +1,7 @@
 """
 Writes a shard of synthetic word samples.
 
-    python -m seedsigner_ocr.generate OUT.npz COUNT SEED --fonts DIR --emnist EMNIST.npz \
+    python -m haller.generate OUT.npz COUNT SEED --fonts DIR --emnist EMNIST.npz \
         --bip39 data/bip39_english.txt --other data/other_words.txt
 
 Output: x (N, 32, 256) uint8 ink maps padded with zeros, w (N,) widths,

@@ -21,7 +21,7 @@ A. Almaksour, E. Anquetil, "Recent developments in the study of rapid human
 movements with the kinematic theory: Applications to handwriting and signature
 synthesis", Pattern Recognition Letters 35, 2014.
 
-    python -m seedsigner_ocr.cursive OUT.npz COUNT SEED --bip39 data/bip39_english.txt \
+    python -m haller.cursive OUT.npz COUNT SEED --bip39 data/bip39_english.txt \
         --other data/other_words.txt
 
 Output: same format as `generate.py`.

@@ -1,7 +1,7 @@
 [project]
-name = "seedsigner-ocr"
-version = "0.1.0"
-description = "Training pipeline of the SeedSigner handwritten-word recognizer"
+name = "haller"
+version = "1"
+description = "Haller, handwritten BIP39 word recognizer: training pipeline (Haller-1 is used by SeedSigner)"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
@@ -23,4 +23,4 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["seedsigner_ocr"]
+packages = ["haller"]

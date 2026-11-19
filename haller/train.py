@@ -1,7 +1,7 @@
 """
-Trains the word recognizer on shards written by seedsigner_ocr.generate.
+Trains the word recognizer on shards written by haller.generate.
 
-    python -m seedsigner_ocr.train OUT.npz SHARD.npz [SHARD.npz ...] --eval EVAL.npz
+    python -m haller.train OUT.npz SHARD.npz [SHARD.npz ...] --eval EVAL.npz
 
 Shards are read one at a time (each fits in memory), in a new random order at
 every epoch. After each epoch the model is evaluated on EVAL.npz (word images

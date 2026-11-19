@@ -1,6 +1,6 @@
 """
-Keeps the reliable samples of a converted real dataset (seedsigner_ocr.names)
-or of generated handwriting (seedsigner_ocr.emuru).
+Keeps the reliable samples of a converted real dataset (haller.names)
+or of generated handwriting (haller.emuru).
 
 Each source image (field `group`; without it, each sample is its own image)
 has one or several candidate crops. A trained model reads every candidate
@@ -15,9 +15,9 @@ without dictionary (greedy CTC decoding) and with the BIP39 dictionary:
 - images without such a candidate are dropped (wrong crop, unreadable scan or
   wrong label).
 
-    python -m seedsigner_ocr.filter read MODEL.npz OUT_PREFIX CANDIDATES.npz [...]
+    python -m haller.filter read MODEL.npz OUT_PREFIX CANDIDATES.npz [...]
         -> OUT_PREFIX_exact.npz, OUT_PREFIX_near.npz (with field `read`)
-    python -m seedsigner_ocr.filter verify NEAR.npz OUT.npz --url http://127.0.0.1:8097/v1/vision
+    python -m haller.filter verify NEAR.npz OUT.npz --url http://127.0.0.1:8097/v1/vision
 """
 import argparse
 import base64

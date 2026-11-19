@@ -15,7 +15,7 @@ einops); the raw generated words are kept per style in RAW_DIR, so an
 interrupted run resumes where it stopped (with the same arguments: the words
 given to each style depend on SEED, --styles and --per-style).
 
-    python -m seedsigner_ocr.emuru OUT.npz GNHK_SPLIT_DIR RAW_DIR SEED \
+    python -m haller.emuru OUT.npz GNHK_SPLIT_DIR RAW_DIR SEED \
         --bip39 data/bip39_english.txt --styles 500 --per-style 60 --batch 12
 
 Output: x (N, 32, 256) uint8 ink maps padded with zeros, w (N,) widths,

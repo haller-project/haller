@@ -7,7 +7,7 @@ and cropped with random margins, so that, like a SeedSigner line, the crop
 holds the word plus some of its surroundings; then normalized. Several random
 crops are taken per word.
 
-    python -m seedsigner_ocr.gnhk OUT.npz GNHK_SPLIT_DIR VARIANTS SEED
+    python -m haller.gnhk OUT.npz GNHK_SPLIT_DIR VARIANTS SEED
 """
 import argparse
 import json

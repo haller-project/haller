@@ -4,9 +4,9 @@ Database 19).
 
 Converts the "byclass" split of the official EMNIST release (IDX files, plain
 or gzipped, from the "gzip" archive published by NIST) into the file expected
-by seedsigner_ocr.generate --emnist:
+by haller.generate --emnist:
 
-    python -m seedsigner_ocr.emnist EMNIST.npz IDX_DIR [--split train]
+    python -m haller.emnist EMNIST.npz IDX_DIR [--split train]
 
 Output: x (N, 28, 28) uint8, white ink on black, upright (the IDX images are
 stored transposed); y (N,) int16 class index in the order 0-9 A-Z a-z.

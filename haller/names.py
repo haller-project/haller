@@ -5,10 +5,10 @@ Recognition", CC0; Hugging Face mirror verbrannter/handwriting_recognition_from_
 Many images start with a printed field label ("NOM :", "PRENOM :") on the same
 line as the handwritten name. Each image therefore yields several candidate
 crops, starting at the beginning of each of the first groups of inked columns;
-the filtering step (seedsigner_ocr.filter) keeps the candidate whose reading by an
+the filtering step (haller.filter) keeps the candidate whose reading by an
 earlier model matches the label, and drops the image if none does.
 
-    python -m seedsigner_ocr.names OUT.npz PARQUET [PARQUET ...] --limit N --seed S --part I/N
+    python -m haller.names OUT.npz PARQUET [PARQUET ...] --limit N --seed S --part I/N
 
 --part I/N converts only every N-th row group, starting at the I-th (0-based),
 so that N processes can share the work.

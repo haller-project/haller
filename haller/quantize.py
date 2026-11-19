@@ -1,15 +1,15 @@
 """
-Quantizes the float weights written by seedsigner_ocr.train into the integer
-model shipped with SeedSigner (resources/handwriting/word_model.npz).
+Quantizes the float weights written by haller.train into the integer
+model shipped with SeedSigner (resources/handwriting/haller-1-*.npz).
 
-    python -m seedsigner_ocr.quantize MODEL.npz SHARD.npz OUT.npz --count 3000 --seed 1
+    python -m haller.quantize MODEL.npz SHARD.npz OUT.npz --count 3000 --seed 1
 
 Arithmetic (seedsigner.helpers.handwriting.word_model, native/handwriting.c):
 - input: ink 0-255 -> ink << 3 (2040 stands for 1.0);
 - weights per output channel: w_q = round(w * s_w[o]), s_w[o] = 2047 / max|w[o]|;
 - activations after ReLU and pooling: 12-bit integers, scale 2047 / a_max, a_max
   being the 99.99th percentile of the layer's float activations over COUNT word
-  images of SHARD (a training shard written by seedsigner_ocr.generate);
+  images of SHARD (a training shard written by haller.generate);
 - each layer: int32 accumulator = bias_q + sum(w_q * a_q), then
   a_q' = min(2047, (acc * mul[o] + 2^15) >> 16) if acc > 0 else 0;
 - output layer: logit = acc * scale[k] + bias[k] (float32).
