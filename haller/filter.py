@@ -31,7 +31,7 @@ import torch.nn.functional as F
 from PIL import Image
 
 from .dictionary import ctc_word_scores, dictionary_tables
-from .model import ALPHABET
+from .model import ALPHABET, folded_forward
 
 BATCH = 512
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -43,13 +43,7 @@ def network(weights: dict, x: np.ndarray) -> torch.Tensor:
     Output logits (N, classes, frames) of the network for ink maps x (N, 32, 256).
     `weights` are the exported (batch normalization folded) torch tensors.
     """
-    a = torch.from_numpy(x).to(DEVICE).float().div_(255).unsqueeze(1)
-    for i, (ph, pw) in ((1, (2, 2)), (2, (2, 2)), (3, (2, 1)), (4, (2, 1))):
-        a = F.max_pool2d(F.relu(F.conv2d(a, weights[f"b{i}.weight"], weights[f"b{i}.bias"], padding=1)), (ph, pw))
-    a = a.flatten(1, 2)
-    a = F.relu(F.conv1d(a, weights["t1.weight"], weights["t1.bias"], padding=1))
-    a = F.relu(F.conv1d(a, weights["t2.weight"], weights["t2.bias"], padding=2, dilation=2))
-    return F.conv1d(a, weights["out.weight"], weights["out.bias"])
+    return folded_forward(weights, torch.from_numpy(x).to(DEVICE).float().div_(255).unsqueeze(1))
 
 
 

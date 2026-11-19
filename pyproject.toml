@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# train, filter
+# train, filter, quantize, vectors (float model and calibration)
 train = ["torch"]
 # names
 names = ["pyarrow"]

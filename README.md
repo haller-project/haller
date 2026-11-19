@@ -168,8 +168,68 @@ place); the current `gnhk.py` gives different, cleaner GNHK samples.
 `train` also writes `capitals.json` (channels, epoch, scores). Other options:
 `--channels C1 C2 C3`, `--hidden`, `--batch` (256), `--lr` (2e-3), `--seed`,
 `--val VAL.npz` (second validation set: the best epoch maximizes the mean of
-the simulated EVAL score and of this one), `--keep-epochs`.
+the simulated EVAL score and of this one), `--keep-epochs`, `--eval-processes`
+(processes of the evaluation by the C library, 1 by default).
 Quantization is deterministic: the same inputs give the same file.
+
+**Version note.** The Haller-1 weights were produced by the commands above at
+tag `haller-1`, where the calibration of the quantization ran in numpy and the
+epoch was chosen by the float model. Since then (see [Inference: SeedSigner's
+C library](#inference-seedsigners-c-library)) both use other code: re-running
+the commands gives files that differ from Haller-1 by one unit on a few biases
+(10 to 28 of the 128 of a layer; calibrated ranges differ by about 1e-6), and
+the epoch is chosen on the quantized model. The shipped Haller-1 weights are
+unchanged.
+
+## Inference: SeedSigner's C library
+
+The quantized network and the dictionary decoding are computed by
+SeedSigner's C library (`src/seedsigner/helpers/handwriting/native/handwriting.c`),
+the code that runs on the device; Haller has no inference code of its own.
+`haller.native` builds it in the SeedSigner checkout found on `PYTHONPATH`
+(with SeedSigner's Makefile; `make` and a C compiler are needed) and loads it
+with `ctypes`. It is used by:
+
+- `haller.evaluate`: share of strips read correctly by quantized weights
+  (`python -m haller.evaluate WEIGHTS.npz STRIPS.npz [--by reel] [--processes N]`);
+- `haller.train`: after each epoch, the model is quantized (calibration on
+  3,000 words of the first shard) and evaluated by the C library; the best
+  epoch is chosen on these scores, as the device will compute them;
+- `haller.quantize` and `haller.vectors`: reference vectors.
+
+The float model is computed by PyTorch only (`haller.model.folded_forward`,
+with the exported weights), for the calibration of the quantization and the
+filters.
+
+### Reference vectors
+
+`haller.quantize` writes, next to `OUT.npz`, `OUT-vectors.json` when given
+`--strips` sources; `haller.vectors` writes them for existing weights:
+
+```bash
+python -m haller.vectors haller-1-capitals.npz --strips capitals=EVAL.npz \
+    --strips mixed=s1.npz --strips cursive=val.npz --float capitals.npz
+```
+
+For each source, 20 strips of spread widths (strips of real photos are never
+used), plus an empty strip and a strip of noise; for each strip, the output
+of the C library (SHA-256 of the logits and of the 2,048 word scores, 5 best
+words and their scores). The file is shipped in SeedSigner next to the
+weights, where `tests/test_handwriting_vectors.py` checks that any build of
+the library gives the same bits. They must be written for every new set of
+weights (Haller-2...) and copied into SeedSigner with them.
+
+With `--float` (always, from `haller.quantize`), the strips are also read by
+the float model and the CTC decoding of `haller.dictionary` (PyTorch, exact,
+no beam), and the quantized C model must agree with it on the strips that
+the float model reads clearly (best word with a log-likelihood of at least
+-5, ahead of the second by at least 1): same best word, and a score that
+differs by at most 2.5. Measured on 452 strips per Haller-1 expert: 613 such
+strips, no different best word, largest score difference 1.94. Over all the
+strips the best words differ on 5 to 6 %, always where the float model
+hesitates or reads nothing (often words that are not BIP39 words). The check
+fails the command otherwise; `tests/test_vectors.py` runs it again on the
+vectors shipped in SeedSigner.
 
 Names (optional, not in Haller-1):
 
@@ -247,14 +307,19 @@ scripts that are not yet part of this repository. The epoch selected was 10.
 - Generated handwriting (Emuru) and training: a single NVIDIA RTX 3060, about
   5 GB of VRAM; 8 epochs of the capitals expert take about 30 minutes (`train.py` falls
   back to the CPU without CUDA, much more slowly).
+- Evaluation after each epoch (quantization and C library, on the CPU): about
+  85 s for the 9,444 strips of the evaluation set with `--eval-processes 2`.
+  The quantized Haller-1 capitals expert reads 96.32 % of its simulated strips
+  and 98.26 % of its real strips (float model: 96.37 % and 98.26 %).
 
 ## Evaluation
 
 `EVAL.npz` holds word strips cut by SeedSigner's page detection (`page.py`)
 from full photos of handwritten seeds, with their BIP39 word: 9,156 strips from
 simulated photos and 288 from real photos (field `reel`, boolean). The metric is
-the share of strips whose most probable BIP39 word (CTC dictionary scoring,
-`dictionary.py`) is correct. The best epoch is selected on simulated strips
+the share of strips whose most probable BIP39 word is correct; since Haller-1
+it is computed on the quantized model by SeedSigner's C library
+(`haller.evaluate`; the table below was measured on the float models). The best epoch is selected on simulated strips
 only; real strips are a test set. The evaluation set is not published.
 
 | Model | Channels | Data | Simulated | Real | Speed |

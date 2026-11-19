@@ -4,11 +4,14 @@ Trains the word recognizer on shards written by haller.generate.
     python -m haller.train OUT.npz SHARD.npz [SHARD.npz ...] --eval EVAL.npz
 
 Shards are read one at a time (each fits in memory), in a new random order at
-every epoch. After each epoch the model is evaluated on EVAL.npz (word images
-cut from photos by SeedSigner's page detection: x, w, y as in the shards, and
-a boolean `reel` field marking the strips of real photos): share of words whose
-most probable BIP39 word is the right one, on simulated and on real strips.
-The float weights of the best epoch on simulated strips are written to OUT.npz.
+every epoch. After each epoch the model is quantized (haller.quantize,
+calibration on 3000 words of the first shard) and evaluated by SeedSigner's C
+library (haller.evaluate), as it will run on the device, on EVAL.npz (word
+images cut from photos by SeedSigner's page detection: x, w, y as in the
+shards, and a boolean `reel` field marking the strips of real photos): share
+of words whose most probable BIP39 word is the right one, on simulated and on
+real strips. The float weights of the best epoch on simulated strips are
+written to OUT.npz.
 """
 import argparse
 import json
@@ -19,7 +22,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .dictionary import ctc_word_scores, dictionary_tables
+from . import evaluate, quantize
 from .model import WordNet, encode
 
 
@@ -51,30 +54,11 @@ def batch(x, w, labels, idx, device, augment):
 
 
 
-def evaluate(net, x, w, labels, words, tables, device, selection=None):
-    net.eval()
-    index = {wd: i for i, wd in enumerate(words)}
-    selection = np.arange(len(labels)) if selection is None else selection
-    good = 0
-    with torch.no_grad():
-        for start in range(0, len(selection), 64):
-            idx = selection[start:start + 64]
-            xb, wb, _ = batch(x, w, labels, idx, device, False)
-            lp = net(xb)
-            scores = ctc_word_scores(lp, torch.clamp(wb // 4, 1, lp.shape[2]), tables)
-            best = scores.argmax(1).cpu().numpy()
-            good += sum(int(b == index.get(labels[i], -1)) for b, i in zip(best, idx))
-    net.train()
-    return good / max(len(selection), 1)
-
-
-
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("out")
     p.add_argument("shards", nargs="+")
     p.add_argument("--eval", required=True)
-    p.add_argument("--bip39", default="data/bip39_english.txt")
     p.add_argument("--channels", type=int, nargs=3, default=[16, 32, 64])
     p.add_argument("--hidden", type=int, default=128)
     p.add_argument("--epochs", type=int, default=10)
@@ -83,6 +67,7 @@ def main():
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--val", help="second validation set (x, w, y): the best epoch maximizes the mean of the "
                                  "simulated EVAL score and of this one")
+    p.add_argument("--eval-processes", type=int, default=1, help="processes of the evaluation by the C library")
     p.add_argument("--keep-epochs", action="store_true", help="also write the weights of every epoch (OUT_eN.npz)")
     a = p.parse_args()
 
@@ -90,8 +75,7 @@ def main():
     rng = np.random.default_rng(a.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     torch.backends.cudnn.benchmark = True
-    words = [l.strip() for l in open(a.bip39) if l.strip()]
-    tables = dictionary_tables(words, device)
+    calibration = quantize.calibration_inks(a.shards[0], 3000, 1)
     ev = np.load(a.eval)
     ev_x, ev_w, ev_y, ev_real = ev["x"], ev["w"].astype(np.int64), [str(y) for y in ev["y"]], ev["reel"].astype(bool)
     if a.val:
@@ -126,18 +110,21 @@ def main():
                 sched.step()
                 loss_sum += loss.item()
                 n_batches += 1
-        sim = evaluate(net, ev_x, ev_w, ev_y, words, tables, device, np.nonzero(~ev_real)[0])
-        real = evaluate(net, ev_x, ev_w, ev_y, words, tables, device, np.nonzero(ev_real)[0])
-        val = evaluate(net, va_x, va_w, va_y, words, tables, device, np.arange(len(va_y))) if a.val else None
+        weights = net.export()
+        q = quantize.quantize(weights, quantize.calibrate(weights, calibration))
+        n = a.eval_processes
+        sim = evaluate.accuracy(q, ev_x, ev_w, ev_y, n, np.nonzero(~ev_real)[0])
+        real = evaluate.accuracy(q, ev_x, ev_w, ev_y, n, np.nonzero(ev_real)[0])
+        val = evaluate.accuracy(q, va_x, va_w, va_y, n) if a.val else None
         print(f"epoch {epoch + 1}/{a.epochs} loss {loss_sum / n_batches:.4f} "
               f"words: simulated {100 * sim:.2f} % real {100 * real:.2f} %"
               + (f" val {100 * val:.2f} %" if a.val else "") + f" {time.time() - t0:.0f} s", flush=True)
         if a.keep_epochs:
-            np.savez(a.out.replace(".npz", f"_e{epoch + 1}.npz"), **net.export())
+            np.savez(a.out.replace(".npz", f"_e{epoch + 1}.npz"), **weights)
         score = (sim + val) / 2 if a.val else sim
         if score >= best:  # selection on simulated photos only; real photos are a test set
             best = score
-            np.savez(a.out, **net.export())
+            np.savez(a.out, **weights)
             json.dump(dict(channels=a.channels, hidden=a.hidden, epoch=epoch + 1, simulated=sim, real=real, val=val),
                       open(a.out.replace(".npz", ".json"), "w"), indent=1)
 

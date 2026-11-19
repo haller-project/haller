@@ -69,3 +69,21 @@ class WordNet(nn.Module):
         weights["out.weight"] = self.out.weight.detach().cpu().numpy()
         weights["out.bias"] = self.out.bias.detach().cpu().numpy()
         return {k: v.astype(np.float32) for k, v in weights.items()}
+
+
+def folded_forward(weights: dict, x: torch.Tensor, activations: list = None) -> torch.Tensor:
+    """
+    Logits (N, NUM_CLASSES, W / 4) of the network for ink maps x (N, 1, 32, W)
+    in 0-1, with the exported weights (batch normalization folded, as torch
+    tensors). If `activations` is a list, the outputs of the six layers after
+    ReLU and pooling are appended to it.
+    """
+    keep = activations.append if activations is not None else lambda a: None
+    for i, pool in ((1, (2, 2)), (2, (2, 2)), (3, (2, 1)), (4, (2, 1))):
+        x = F.max_pool2d(F.relu(F.conv2d(x, weights[f"b{i}.weight"], weights[f"b{i}.bias"], padding=1)), pool)
+        keep(x)
+    x = F.relu(F.conv1d(x.flatten(1, 2), weights["t1.weight"], weights["t1.bias"], padding=1))
+    keep(x)
+    x = F.relu(F.conv1d(x, weights["t2.weight"], weights["t2.bias"], padding=2, dilation=2))
+    keep(x)
+    return F.conv1d(x, weights["out.weight"], weights["out.bias"])

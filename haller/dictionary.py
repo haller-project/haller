@@ -1,6 +1,7 @@
 """
-CTC score of every dictionary word, for many images at once (PyTorch, used for
-evaluation during training; SeedSigner has its own implementation).
+CTC score of every dictionary word, for many images at once, exact (PyTorch,
+for the float model: filters and the check of the reference vectors; the
+quantized model is scored by SeedSigner's C library, haller.native).
 
 State 0 of every word is a prefix state (blank or digit, looping: the line
 number); then l1, b, l2, b, ..., lL, b as in standard CTC.
