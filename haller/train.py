@@ -15,6 +15,7 @@ written to OUT.npz.
 """
 import argparse
 import json
+import os
 import time
 
 import numpy as np
@@ -70,12 +71,21 @@ def main():
                                  "simulated EVAL score and of this one")
     p.add_argument("--eval-processes", type=int, default=1, help="processes of the evaluation by the C library")
     p.add_argument("--keep-epochs", action="store_true", help="also write the weights of every epoch (OUT_eN.npz)")
+    p.add_argument("--deterministic", action="store_true",
+                   help="bit-identical runs on the same hardware and software: deterministic GPU kernels, "
+                        "CTC loss computed on the CPU (about 10 %% slower)")
     a = p.parse_args()
 
+    if a.deterministic:
+        os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")  # read when cuBLAS is first used
+        torch.use_deterministic_algorithms(True)
+        torch.backends.cudnn.deterministic = True
     torch.manual_seed(a.seed)
     rng = np.random.default_rng(a.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    torch.backends.cudnn.benchmark = True
+    torch.backends.cudnn.benchmark = not a.deterministic
+    # the CUDA CTC loss has no deterministic backward pass
+    ctc_device = "cpu" if a.deterministic else device
     calibration = quantize.calibration_inks(a.shards[0], 3000, 1)
     ev = np.load(a.eval)
     ev_x, ev_w, ev_y, ev_real = ev["x"], ev["w"].astype(np.int64), [str(y) for y in ev["y"]], (ev["reel"].astype(bool) if "reel" in ev.files else np.zeros(len(ev["w"]), bool))
@@ -102,8 +112,9 @@ def main():
                 width = min(x.shape[2], (int(wb.max()) + 19) // 4 * 4)
                 lp = net(xb[..., :width])
                 frames = torch.clamp(wb // 4, 1, lp.shape[2])
-                lengths = torch.tensor([len(t) for t in targets], device=device)
-                loss = ctc(lp.permute(2, 0, 1), torch.cat(targets).to(device), frames, lengths)
+                lengths = torch.tensor([len(t) for t in targets], device=ctc_device)
+                loss = ctc(lp.permute(2, 0, 1).to(ctc_device), torch.cat(targets).to(ctc_device),
+                           frames.to(ctc_device), lengths)
                 opt.zero_grad(set_to_none=True)
                 loss.backward()
                 nn.utils.clip_grad_norm_(net.parameters(), 5.0)
