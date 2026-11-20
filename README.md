@@ -68,7 +68,12 @@ as words from a 2,048-word dictionary, 11 bits per word, with spare bits as a
 checksum: the same layout BIP39 would use eighteen years later.
 
 **License.** MIT (`LICENSE`), code and weights. The training data keep their
-own licenses, listed in [Data sources and licenses](#data-sources-and-licenses).
+own licenses, listed in [Data sources and licenses](#data-sources-and-licenses)
+and [`NOTICE.md`](NOTICE.md), which accompanies the weights.
+
+The full model card, with the word detector and the evaluation of the
+release, is [`MODEL_CARD.md`](MODEL_CARD.md); releases are made as described
+in [`RELEASING.md`](RELEASING.md) and listed in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Data
 
@@ -251,6 +256,26 @@ them exactly from the published float models (see [What can be reproduced](#what
 98.96 %), same five best words on the 62 strips of the reference vectors, and
 on SeedSigner's 1,605 test photos the same results as before within one or two
 seeds.
+
+## Word detector
+
+`haller-1-detector.npz` finds the words, the line numbers and the seed card on
+a photo reduced to 288 x 384 pixels; SeedSigner uses it when its page rules
+find no valid seed. `haller/detector.py` holds the network, its quantization
+and the integer reference in numpy, `haller/train_detector.py` the training,
+and `haller/detector_export.py` writes the weights read by the C library and
+their reference vectors:
+
+```bash
+python -m haller.train_detector detector.npz PAGES_1.npz ... GNHK_PAGES.npz --val PAGES_VAL.npz --epochs 14
+python -m haller.detector detector.npz PAGES_VAL.npz detector_q.npz --count 400
+python -m haller.detector_export detector_q.npz OUT_DIR --name haller-1-detector
+```
+
+From the quantized model of Haller-1, `haller.detector_export` writes
+`haller-1-detector.npz` and `haller-1-detector-vectors.json` byte for byte as
+shipped in SeedSigner. The generator of the training pages is not yet in this
+repository.
 
 ## Inference: SeedSigner's C library
 
@@ -499,7 +524,11 @@ pens, writers and lighting, taken with the SeedSigner camera) go here. -->
 
 ## Data sources and licenses
 
-Datasets are downloaded by the user; none is redistributed in this repository.
+Datasets are downloaded by the user; no dataset is redistributed in this
+repository. `recipes/haller-1/data` holds files derived from them (simulated
+evaluation strips drawn with EMNIST test letters and fonts, words generated in
+the style of GNHK writers, a selection mask of GNHK samples), under the terms
+and attributions of [`NOTICE.md`](NOTICE.md).
 
 - **Fonts**: 287 handwriting fonts from Google Fonts, plus 25 Playwrite fonts
   for the cursive shards, under the SIL Open Font License 1.1 or Apache

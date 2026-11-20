@@ -1,0 +1,65 @@
+# Notices and third-party data
+
+Haller (code, documentation, and the weights published with each release) is
+licensed under the MIT License, see [`LICENSE`](LICENSE). The weights are
+trained on, and some files of `recipes/` are derived from, the third-party
+material listed below, which keeps its own license. This file must accompany
+any copy of the weights.
+
+## Summary
+
+| Material | License or terms | Used for | Redistributed here |
+|---|---|---|---|
+| GNHK (GoodNotes Handwriting Kollection) | CC BY 4.0 | real word images: training of all three networks, detector pages, Emuru styles | no raw image; derived files, see below |
+| EMNIST (from NIST Special Database 19) | no license stated; citation requested by the authors; NIST asks to be acknowledged as the source | letters of the synthetic words and pages | derived strips in `recipes/haller-1/data/haller-1-eval-simulated.npz` |
+| Google Fonts, 294 font files | SIL Open Font License 1.1 | rendering of synthetic words and pages | no font file |
+| Google Fonts, 18 font files | Apache License 2.0 | rendering of synthetic words and pages | no font file |
+| Emuru model (`blowing-up-groundhogs/emuru`) | MIT | generation of BIP39 words in the style of GNHK writers (lowercase expert) | generated word images in `recipes/haller-1/data/emuru_*.npz` |
+| Qwen3-VL-4B-Instruct | Apache License 2.0 | check of the generated words (accept or reject) | nothing |
+| BIP39 word lists | as distributed with the MIT-licensed reference implementation (`trezor/python-mnemonic`) and `embit` | labels, dictionary decoding, non-target words | `data/bip39_english.txt`, `data/other_words.txt` (accents removed) |
+| SeedSigner | MIT | page detection and normalization code imported at data generation, C library for inference | nothing (imported from a checkout) |
+
+Not used by Haller-1: the Kaggle "Handwriting Recognition" names (CC0,
+`haller/names.py`, used only by experiments), and any printed seed card
+template other than the SeedSigner layout, which the page generators draw
+themselves.
+
+## Attributions
+
+**GNHK.** Alex W. C. Lee, Jonathan Chung, Marco Lee, "GNHK: A Dataset for
+English Handwriting in the Wild", ICDAR 2021. Dataset by GoodNotes,
+https://github.com/GoodNotes/GNHK-dataset, licensed under the Creative
+Commons Attribution 4.0 International License
+(https://creativecommons.org/licenses/by/4.0/). Changes: word images were
+cropped from the pages, straightened, binarized and normalized to a height of
+32 pixels; pages were reduced and annotated with word boxes for the detector;
+for the lowercase expert, samples were filtered by a model and used as style
+references for generated words. No warranty is given by the licensor.
+
+**EMNIST.** Gregory Cohen, Saeed Afshar, Jonathan Tapson, André van Schaik,
+"EMNIST: an extension of MNIST to handwritten letters", 2017,
+arXiv:1702.05373. Derived from NIST Special Database 19, Handprinted Forms
+and Characters, National Institute of Standards and Technology. Changes:
+letters were resized, slanted, joined into words and pages and rendered as
+photographs; the published evaluation strips are images derived in this way
+from the EMNIST test split.
+
+**Fonts.** Each font is downloaded by `haller.fonts` from the google/fonts
+repository at a pinned commit, checked against `data/fonts.sha256` and
+`data/fonts_cursive.sha256`; the license of each font and the URL of its
+license text are written to `LICENSES.json` next to the downloaded files. The
+font files are not redistributed; images rendered with them are not Font
+Software under the OFL.
+
+**Emuru.** Vittorio Pippi, Fabio Quattrini, Silvia Cascianelli, Alessio
+Tonioni, Rita Cucchiara, "Zero-Shot Styled Text Image Generation, but Make It
+Autoregressive", CVPR 2025. Model `blowing-up-groundhogs/emuru`, MIT License.
+The generated words take the handwriting style of GNHK pages (see GNHK above).
+
+**SeedSigner.** https://github.com/SeedSigner/seedsigner, MIT License.
+
+## Not redistributed
+
+Datasets are downloaded by the user with the commands of the README. Photos
+taken by users of the SeedSigner reader, and the real photos of the
+evaluation sets, are never included in this repository or in a release.
