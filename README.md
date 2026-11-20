@@ -188,8 +188,8 @@ that cannot be regenerated and the content digests of every file.
   of the lowercase expert are regenerated identically by the current code.
   The commands below, with the current `synth.py`, give shards of the same
   kind with other samples.
-- **Quantization is deterministic** (same result on CPU and GPU): the
-  published weights are obtained exactly from the float models
+- **Quantization is deterministic**: the published weights are obtained
+  exactly (with `--ranges` on any processor) from the float models
   `recipes/haller-1/data/haller-1-capitals-float.npz` and
   `haller-1-lowercase-float.npz`.
 - **Training** of Haller-1 is not bit-reproducible: it used
@@ -235,7 +235,9 @@ place); the current `gnhk.py` gives different, cleaner GNHK samples.
 the simulated EVAL score and of this one), `--keep-epochs`, `--eval-processes`
 (processes of the evaluation by the C library, 1 by default), `--deterministic`
 (bit-identical runs: deterministic GPU kernels, CTC loss on the CPU).
-Quantization is deterministic: the same inputs give the same file.
+Quantization is deterministic: the same inputs give the same file on a given
+processor; `--ranges WEIGHTS.npz` reuses the activation ranges of existing
+weights and gives the same file on every machine.
 
 **Version note.** The epoch is chosen on the quantized model, as computed by
 SeedSigner's C library. The first Haller-1 weights were quantized at the

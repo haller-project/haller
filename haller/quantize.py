@@ -24,7 +24,12 @@ Output arrays, little-endian, in the memory layout read by the C code:
 - <layer>.bias (O,) int32, <layer>.mul (O,) int32;
 - out.weight (37, hidden) int16, out.scale (37,) float32, out.bias (37,) float32;
 - amax (6,) float32: calibrated activation ranges, for reference.
-The same inputs always give the same file.
+The same inputs give the same file on a given processor. The calibrated ranges
+are float32 percentiles of PyTorch activations, which can differ by about
+1e-6 from one processor to another (vector instructions), enough to change a
+rounding: a bias can then differ by one unit. `--ranges WEIGHTS.npz` takes the
+ranges stored in an existing quantized file instead of calibrating them; the
+rest is computed in float64 and gives the same file on every machine.
 """
 import argparse
 
@@ -110,11 +115,16 @@ def main():
     a.add_argument("--seed", type=int, default=1)
     a.add_argument("--strips", action="append", default=[],
                    help="STYLE=STRIPS.npz: source of reference vectors (haller.vectors), repeatable")
+    a.add_argument("--ranges", help="quantized weights whose activation ranges (amax) are used instead of "
+                                    "calibrating them; the calibrated ranges are still printed for comparison")
     a = a.parse_args()
 
     p = {k: v.astype(np.float32) for k, v in np.load(a.model).items()}
     amax = calibrate(p, calibration_inks(a.shard, a.count, a.seed))
     print("amax", amax)
+    if a.ranges:
+        calibrated, amax = amax, np.load(a.ranges)["amax"].astype(np.float32)
+        print("amax of", a.ranges, amax, "largest difference", float(np.abs(calibrated - amax).max()))
     np.savez(a.out, **quantize(p, amax))
     if a.strips:
         print(vectors.write(a.out, vectors.parse_sources(a.strips), float_weights=p))

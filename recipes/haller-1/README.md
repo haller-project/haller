@@ -15,7 +15,7 @@ weights of the same kind, not these ones.
 | GNHK error filter (lowercase) | exactly | `haller.filter gnhk` with the published selection mask |
 | Emuru words (lowercase) | published as data | generated on a GPU and checked by a vision model |
 | Training | same level, not the same bits | float models published; see [Training](#training) |
-| Quantization and reference vectors | exactly | current `haller.quantize`, from the published float models |
+| Quantization and reference vectors | exactly | current `haller.quantize`, from the published float models (see [Quantization](#quantization)) |
 
 ## Files
 
@@ -89,7 +89,8 @@ PYTHONPATH=.:$SS python -m haller1.train_capitals capitals.npz \
 cd ../..
 
 # 4. Quantization (current code): gives haller-1-capitals.npz exactly
-python -m haller.quantize $R/data/haller-1-capitals-float.npz $R/s1.npz haller-1-capitals.npz --count 3000 --seed 1
+python -m haller.quantize $R/data/haller-1-capitals-float.npz $R/s1.npz haller-1-capitals.npz --count 3000 --seed 1 \
+    --ranges $SS/seedsigner/resources/handwriting/haller-1-capitals.npz
 ```
 
 The original run selected epoch 8 (`data/train-capitals.log`: 96.37 % of the
@@ -136,7 +137,8 @@ PYTHONPATH=.:$SS python -m haller1.train_lowercase lowercase.npz \
 cd ../..
 
 # 5. Quantization (current code): gives haller-1-lowercase.npz exactly
-python -m haller.quantize $R/data/haller-1-lowercase-float.npz $R/s1.npz haller-1-lowercase.npz --count 3000 --seed 1
+python -m haller.quantize $R/data/haller-1-lowercase-float.npz $R/s1.npz haller-1-lowercase.npz --count 3000 --seed 1 \
+    --ranges $SS/seedsigner/resources/handwriting/haller-1-lowercase.npz
 ```
 
 The original run selected epoch 10 on the mean of the simulated EVAL score
@@ -176,6 +178,24 @@ batching: neither is bit-reproducible, so the selected strips are published
 here (images generated from GNHK styles, CC BY 4.0 for the styles, MIT for the
 model).
 
+## Quantization
+
+The quantization calibrates six activation ranges (99.99th percentile of each
+layer's float32 activations over 3,000 words of s1), then rounds in float64.
+The calibrated ranges depend slightly on the processor: on the machine that
+made the weights (CPU or GPU) the command without `--ranges` gives the shipped
+files exactly; on another x86-64 processor the ranges differed by at most
+1.4e-6 and 10 to 20 biases by one unit. `--ranges` takes the six ranges stored
+in the shipped file (field `amax`) instead and prints their difference with
+the calibrated ones: the result is then the same on every machine. The
+reference vectors are written again byte for byte by `haller.vectors` from
+the shipped weights, the evaluation strips of `data/`, s1 and `val.npz`:
+
+```bash
+python -m haller.vectors haller-1-capitals.npz --strips capitals=$R/data/haller-1-eval-simulated.npz \
+    --strips mixed=$R/s1.npz --strips cursive=$R/val.npz --float $R/data/haller-1-capitals-float.npz
+```
+
 ## Evaluation strips
 
 `EVAL.npz` holds 9,156 strips of simulated photos and 288 strips of real
@@ -200,8 +220,7 @@ compared with the originals of Haller-1: identical arrays.
 The original runs used `torch.backends.cudnn.benchmark` and the CUDA CTC loss,
 whose backward pass is not deterministic: two runs with the same data and seed
 give different weights. The float models are therefore published, and the
-quantization, deterministic on CPU and GPU, gives the shipped weights exactly
-from them.
+quantization gives the shipped weights exactly from them.
 
 The current `haller.train` has a `--deterministic` option (deterministic GPU
 kernels, CTC loss on the CPU): two runs with the same data, seed, hardware and
