@@ -278,8 +278,11 @@ python -m haller.detector_export detector_q.npz OUT_DIR --name haller-1-detector
 
 From the quantized model of Haller-1, `haller.detector_export` writes
 `haller-1-detector.npz` and `haller-1-detector-vectors.json` byte for byte as
-shipped in SeedSigner. The generator of the training pages is not yet in this
-repository.
+shipped in SeedSigner. The training pages are written by
+`haller.detector_pages` (simulated photos of cards and lists, built on
+`haller.pages`) and `haller.detector_gnhk` (GNHK pages with their word
+boxes); the exact recipe of the detector of Haller-1 is
+[`recipes/haller-1-detector/README.md`](recipes/haller-1-detector/README.md).
 
 ## Inference: SeedSigner's C library
 

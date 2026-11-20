@@ -216,7 +216,9 @@ models; training on a GPU gives models of the same level, not the same bits.
 The simulated evaluation strips, derived from EMNIST, are not stored: they
 are regenerated identically from the official EMNIST archive
 (`recipes/haller-1/evalsim/regenerate.sh`).
-Detector recipe: TBD.
+The detector recipe, [`recipes/haller-1-detector/README.md`](recipes/haller-1-detector/README.md),
+regenerates its training pages exactly and gives the shipped detector byte for
+byte from its published float model.
 
 ## Versioning
 
