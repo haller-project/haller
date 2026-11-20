@@ -125,8 +125,10 @@ through the same code; a change to `preprocess.py` requires regenerating all dat
 ## Setup
 
 Linux x86-64, Python 3.10 or later, `make` and a C compiler (the C library of
-SeedSigner is built on first use), an NVIDIA GPU for training. Haller-1 was
-made with the versions pinned in `requirements-lock.txt`.
+SeedSigner is built on first use), an NVIDIA GPU for training. The training
+and quantization of Haller-1 used the versions pinned in `requirements-lock.txt`;
+its data were generated with the versions given in
+[`recipes/haller-1`](recipes/haller-1/README.md).
 
 ```bash
 # SeedSigner with the handwriting reader: its preprocessing and C library are
@@ -173,28 +175,35 @@ one process per shard; with less memory, start them in smaller groups.
 
 ### What can be reproduced
 
-- **Data**: the synthetic shards and the GNHK crops are deterministic for given
-  inputs, seeds and library versions (the same on two machines). They are not
-  the samples Haller-1 was trained on: its shards were made by an earlier
-  version of `synth.py` (blur kernels up to 9x9, crops not clamped to the
-  image, another draw of the scale), so the current commands give shards of
-  the same kind with other samples. The capitals expert's GNHK crops were also
-  made before the EXIF fix (below).
-- **Training is not bit-reproducible**: `torch.backends.cudnn.benchmark` and the
-  GPU kernels make two runs with the same seed differ. A retrained model reaches
-  the same accuracy within the training-seed noise, not the same weights.
-- **Quantization is deterministic**: the published weights are obtained exactly
-  from the float models (`capitals.npz`, `lowercase.npz`), which are not
-  published in this repository.
-- **The selection of the epoch** uses `EVAL.npz`, which is not published (it
-  holds strips of real photos). `--eval` accepts any file of strips with
-  `x`, `w`, `y` (and optionally `reel`), for example a shard generated with
-  another seed and `--bip39-share 1.0`, with the BIP39 words of the GNHK test
-  split as real strips.
-- **The lowercase expert** also needs the shards s17 to s24, the GNHK error
-  filter, the vision check and the composition of the Emuru words, made by
-  scripts that are not in this repository yet: its training cannot be run
-  from this repository alone.
+[`recipes/haller-1`](recipes/haller-1/README.md) reproduces the published
+weights: the code versions that made their data, the float models, the data
+that cannot be regenerated and the content digests of every file.
+
+- **Data**: deterministic for given inputs, seeds and library versions. The
+  shards of Haller-1 were made by the `synth.py` of 17/11/2026 (kept in
+  `recipes/haller-1/haller1`), which differs from the current one (blur
+  kernels up to 9x9, crops not clamped to the image, another draw of the
+  scale): with it and the pinned versions, s1 to s24 are regenerated
+  identically. The cursive shards, the cursive validation and the GNHK crops
+  of the lowercase expert are regenerated identically by the current code.
+  The commands below, with the current `synth.py`, give shards of the same
+  kind with other samples.
+- **Quantization is deterministic** (same result on CPU and GPU): the
+  published weights are obtained exactly from the float models
+  `recipes/haller-1/data/haller-1-capitals-float.npz` and
+  `haller-1-lowercase-float.npz`.
+- **Training** of Haller-1 is not bit-reproducible: it used
+  `torch.backends.cudnn.benchmark` and the CUDA CTC loss, so two runs with the
+  same seed differ. A retrained model reaches the same level, not the same
+  weights. `haller.train --deterministic` makes new runs bit-identical on the
+  same hardware and software.
+- **The selection of the epoch** uses only the simulated strips of
+  `EVAL.npz`; they are published as
+  `recipes/haller-1/data/haller-1-eval-simulated.npz`. The 288 strips of real
+  photos (a test set) are not published.
+- **Generated handwriting** (Emuru) and the vision-model checks are not
+  bit-reproducible (GPU sampling, served model): the strips used by the
+  lowercase expert are published in `recipes/haller-1/data`.
 
 ## Reproducing Haller-1: capitals expert
 
@@ -209,7 +218,8 @@ done; wait
 python -m haller.gnhk gnhk_train.npz GNHK/train 4 1
 
 # 3. Training: 8 epochs, best epoch on the simulated evaluation strips
-python -m haller.train capitals.npz s{1..16}.npz gnhk_train.npz --eval EVAL.npz --epochs 8
+python -m haller.train capitals.npz s{1..16}.npz gnhk_train.npz \
+    --eval recipes/haller-1/data/haller-1-eval-simulated.npz --epochs 8
 
 # 4. Quantization, calibrated on 3,000 words of shard 1
 python -m haller.quantize capitals.npz s1.npz haller-1-capitals.npz --count 3000 --seed 1
@@ -223,7 +233,8 @@ place); the current `gnhk.py` gives different, cleaner GNHK samples.
 `--channels C1 C2 C3`, `--hidden`, `--batch` (256), `--lr` (2e-3), `--seed`,
 `--val VAL.npz` (second validation set: the best epoch maximizes the mean of
 the simulated EVAL score and of this one), `--keep-epochs`, `--eval-processes`
-(processes of the evaluation by the C library, 1 by default).
+(processes of the evaluation by the C library, 1 by default), `--deterministic`
+(bit-identical runs: deterministic GPU kernels, CTC loss on the CPU).
 Quantization is deterministic: the same inputs give the same file.
 
 **Version note.** The epoch is chosen on the quantized model, as computed by
@@ -233,7 +244,7 @@ numpy; its PyTorch version gives one unit of difference on 10 to 16 biases of
 a layer (calibrated ranges differ by about 1e-6). The weights now shipped in
 SeedSigner were regenerated by the current `haller.quantize` from the same
 float models (same command, same inputs), so that step 4 above reproduces
-them exactly from these float models (see [What can be reproduced](#what-can-be-reproduced)): same share of strips read correctly on `EVAL.npz`
+them exactly from the published float models (see [What can be reproduced](#what-can-be-reproduced)): same share of strips read correctly on `EVAL.npz`
 (capitals expert 96.32 % simulated, 98.26 % real; lowercase expert 96.13 % and
 98.96 %), same five best words on the 62 strips of the reference vectors, and
 on SeedSigner's 1,605 test photos the same results as before within one or two
@@ -265,7 +276,8 @@ filters.
 `--strips` sources; `haller.vectors` writes them for existing weights:
 
 ```bash
-python -m haller.vectors haller-1-capitals.npz --strips capitals=EVAL.npz \
+python -m haller.vectors haller-1-capitals.npz \
+    --strips capitals=recipes/haller-1/data/haller-1-eval-simulated.npz \
     --strips mixed=s1.npz --strips cursive=val.npz --float capitals.npz
 ```
 
@@ -330,24 +342,33 @@ for i in $(seq 1 8); do
   python -m haller.generate c$i.npz 50000 $((3000 + i)) --cursive --fonts fonts_cursive \
       --emnist EMNIST.npz --bip39 data/bip39_english.txt --other data/other_words.txt &
 done; wait
-# validation words of the same fonts (BIP39 labels only are scored)
-python -m haller.generate val.npz 3000 3999 --cursive --fonts fonts_cursive \
+# validation words of the same fonts, BIP39 labels only (1,274 of 3,000)
+python -m haller.generate val_raw.npz 3000 3999 --cursive --fonts fonts_cursive \
     --emnist EMNIST.npz --bip39 data/bip39_english.txt --other data/other_words.txt
+python -c "
+import numpy as np
+d = np.load('val_raw.npz'); bip39 = set(open('data/bip39_english.txt').read().split())
+k = np.array([str(y) in bip39 for y in d['y']])
+np.savez('val.npz', x=d['x'][k], w=d['w'][k], y=d['y'][k])"
 
 # 2. GNHK with the EXIF orientation; samples that the capitals expert reads with a
-#    character error rate above 0.8, or almost blank, are dropped (gnhk_f.npz)
+#    character error rate above 0.8, or almost blank, are dropped
 python -m haller.gnhk gnhk_train.npz GNHK/train 4 1
+python -m haller.filter gnhk capitals.npz gnhk_train.npz gnhk_f.npz
 
 # 3. Emuru, lowercase BIP39 words in the hands of the GNHK pages of
 #    data/gnhk_cursive_pages.txt; raw words checked by the vision model
-#    (threshold 0.9), then composed three times (seeds 31 to 33)
+#    (threshold 0.9), then composed three times (seeds 31 to 33);
+#    the strips of Haller-1 are recipes/haller-1/data/emuru_c3{1,2,3}.npz
 python -m haller.emuru emuru_c.npz GNHK/train emuru_raw_c 21 --bip39 data/bip39_english.txt \
     --styles 200 --per-style 80 --batch 12 --lower --pages data/gnhk_cursive_pages.txt --generate-only
 
-# 4. Training: 10 epochs, all the data of B2's shards plus the above
+# 4. Training: 10 epochs, s1-s24 (seeds 1001 to 1024), the cursive data, and the
+#    generated words of the "Generated handwriting" section (Haller-1:
+#    recipes/haller-1/data/emuru_train.npz)
 python -m haller.train lowercase.npz s{1..24}.npz c{1..8}.npz gnhk_f.npz gnhk_f.npz \
     emuru_exact.npz emuru_exact.npz emuru_c31.npz emuru_c32.npz emuru_c33.npz \
-    --eval EVAL.npz --val val.npz --keep-epochs --epochs 10
+    --eval recipes/haller-1/data/haller-1-eval-simulated.npz --val val.npz --keep-epochs --epochs 10
 python -m haller.quantize lowercase.npz s1.npz haller-1-lowercase.npz --count 3000 --seed 1
 ```
 
@@ -355,9 +376,11 @@ python -m haller.quantize lowercase.npz s1.npz haller-1-lowercase.npz --count 30
 most 3 connected components, the evaluation fonts excluded (see
 [Evaluation](#evaluation)). `data/gnhk_cursive_pages.txt` holds the GNHK pages
 whose style line is handwritten (according to the vision model) and has at
-most 0.9 connected components per letter. The GNHK error filter, the vision
-check of the raw Emuru words and their composition were run with helper
-scripts that are not yet part of this repository. The epoch selected was 10.
+most 0.9 connected components per letter. The raw Emuru words were checked
+one by one by the vision model (the statement "The handwritten word in this
+image is WORD.", as `haller.filter verify`) and composed by `haller.emuru.compose`
+with seeds 31 to 33; [`recipes/haller-1`](recipes/haller-1/README.md) gives
+the details and the data. The epoch selected was 10.
 
 ## Hardware
 
@@ -378,7 +401,8 @@ simulated photos and 288 from real photos (field `reel`, boolean). The metric is
 the share of strips whose most probable BIP39 word is correct; since Haller-1
 it is computed on the quantized model by SeedSigner's C library
 (`haller.evaluate`; the table below was measured on the float models). The best epoch is selected on simulated strips
-only; real strips are a test set. The evaluation set is not published.
+only; real strips are a test set. The simulated strips are published
+(`recipes/haller-1/data/haller-1-eval-simulated.npz`); the real ones are not.
 
 | Model | Channels | Data | Simulated | Real | Speed |
 |---|---|---|---|---|---|
@@ -446,8 +470,12 @@ log-likelihoods: the probability of a seed given the photo and the BIP39
 checksum, and the probability of each word given the checksum (the percentage
 SeedSigner shows next to a proposed word). The temperature and the
 thresholds were chosen on 640 simulated pages kept apart from every test set:
-400 pages of EMNIST test capitals and 240 pages in two lowercase fonts never
-used elsewhere (Playwrite DE Grund, Playwrite NZ Basic). The lowest
+400 pages of EMNIST test capitals and 240 pages in two lowercase fonts,
+Playwrite DE Grund and Playwrite NZ Basic, not used by the test sets.
+Playwrite NZ Basic is also one of the 287 training fonts; measured on the
+calibration pages, this changes neither the reading of its pages (78.8 % of
+the words, against 85.7 % for DE Grund) nor the choice of the temperature
+(see [`recipes/haller-1`](recipes/haller-1/README.md#calibration-fonts)). The lowest
 temperature with no wrong seed reported as valid is 2.2 (at 1.3 and 1.8, two
 wrong seeds pass); a word below 0.95 given the checksum is then uncertain.
 

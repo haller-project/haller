@@ -1,0 +1,11 @@
+parameters 163989
+epoch 1/10 loss 1.3009 words: simulated 91.64 % real 94.79 % val 60.13 % 481 s
+epoch 2/10 loss 0.7394 words: simulated 93.18 % real 97.92 % val 73.86 % 874 s
+epoch 3/10 loss 0.6911 words: simulated 96.19 % real 98.61 % val 75.27 % 1568 s
+epoch 4/10 loss 0.6648 words: simulated 96.28 % real 98.26 % val 76.14 % 2238 s
+epoch 5/10 loss 0.6458 words: simulated 95.12 % real 98.26 % val 73.39 % 2686 s
+epoch 6/10 loss 0.6357 words: simulated 96.19 % real 98.96 % val 77.00 % 3087 s
+epoch 7/10 loss 0.6282 words: simulated 96.33 % real 98.61 % val 78.81 % 3492 s
+epoch 8/10 loss 0.6237 words: simulated 96.07 % real 98.96 % val 78.49 % 3882 s
+epoch 9/10 loss 0.6209 words: simulated 93.46 % real 96.18 % val 82.18 % 4270 s
+epoch 10/10 loss 0.6329 words: simulated 96.16 % real 98.96 % val 79.83 % 4657 s

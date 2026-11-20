@@ -1,0 +1,9 @@
+parameters 163989
+epoch 1/8 loss 1.5784 words: simulated 95.85 % real 97.22 % 228 s
+epoch 2/8 loss 0.8156 words: simulated 96.10 % real 96.88 % 442 s
+epoch 3/8 loss 0.7557 words: simulated 96.23 % real 97.57 % 647 s
+epoch 4/8 loss 0.7204 words: simulated 96.17 % real 96.88 % 863 s
+epoch 5/8 loss 0.6972 words: simulated 96.24 % real 96.53 % 1101 s
+epoch 6/8 loss 0.6745 words: simulated 93.86 % real 96.53 % 1352 s
+epoch 7/8 loss 0.6735 words: simulated 96.29 % real 97.92 % 1557 s
+epoch 8/8 loss 0.6683 words: simulated 96.37 % real 98.26 % 1749 s

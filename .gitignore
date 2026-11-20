@@ -2,3 +2,4 @@ __pycache__/
 *.npz
 runs/
 *.egg-info/
+!recipes/haller-1/data/*.npz
