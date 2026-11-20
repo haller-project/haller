@@ -67,7 +67,7 @@ TBD=$(grep -n -w "TBD" "$REL/NOTES.md" "$REL/EVALUATION.md" MODEL_CARD.md CHANGE
 if [ -n "$TBD" ]; then
     n=$(printf '%s\n' "$TBD" | wc -l)
     if [ "$ALLOW_TBD" = 1 ]; then warn "$n lines with TBD placeholders (accepted by --allow-tbd)"
-    else printf '%s\n' "$TBD" | head -20 >&2; die "$n lines with TBD placeholders"; fi
+    else head -20 <<< "$TBD" >&2; die "$n lines with TBD placeholders"; fi
 fi
 
 # 3. Tag
@@ -79,7 +79,7 @@ fi
 HEAD_TREE=$(git rev-parse 'HEAD^{tree}')
 if [ -z "$COMMIT" ]; then
     git rev-parse -q --verify "$REMOTE_BRANCH" >/dev/null || die "no $REMOTE_BRANCH (git fetch origin)"
-    COMMIT=$(git log --format='%H %T' "$REMOTE_BRANCH" | awk -v t="$HEAD_TREE" '$2 == t {print $1; exit}')
+    COMMIT=$(git log --format='%H %T' "$REMOTE_BRANCH" | awk -v t="$HEAD_TREE" '$2 == t && !found {print $1; found = 1}')
     if [ -z "$COMMIT" ]; then
         if [ "$DRY_RUN" = 1 ]; then
             warn "no commit of $REMOTE_BRANCH has the tree of HEAD: the release commit is not pushed yet; HEAD used for this dry run"
@@ -94,7 +94,7 @@ COMMIT=$(git rev-parse --verify "$COMMIT^{commit}")
 BAD=$(git log --format='%H %an <%ae> %cn <%ce> %ad %cd' --date=raw "$COMMIT" \
       | awk -v id="$IDENTITY_NAME <$IDENTITY_EMAIL>" '{
             line = $0; sub(/^[^ ]+ /, "", line)
-            if (index(line, id " " id " ") != 1 || $(NF-2) != "+0000" || $NF != "+0000") print $1 }' | head -5)
+            if (index(line, id " " id " ") != 1 || $(NF-2) != "+0000" || $NF != "+0000") print $1 }')
 if [ -n "$BAD" ]; then
     if [ "$DRY_RUN" = 1 ]; then warn "commits outside the project identity or not in UTC (first: $(echo "$BAD" | head -1 | cut -c1-12)); a pushed commit is required"
     else die "commits outside the project identity or not in UTC, first: $(echo "$BAD" | head -1)"; fi
