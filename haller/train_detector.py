@@ -107,6 +107,34 @@ def evaluate(model, sets, device):
 
 
 
+@torch.no_grad()
+def initialize(model, weights: dict, x: torch.Tensor):
+    """
+        Starts from exported weights, where each batch normalization is folded
+        into its convolution: the convolutions take the folded weights, and
+        each normalization is set, layer by layer, so that on the batch `x` it
+        gives back the folded bias (identity in training mode on that batch).
+    """
+    for name, block in model.blocks.items():
+        block[0].weight.copy_(torch.from_numpy(weights[name + ".weight"]))
+    model.head.weight.copy_(torch.from_numpy(weights["head.weight"]))
+    model.head.bias.copy_(torch.from_numpy(weights["head.bias"]))
+    model.train()
+    for name, block in model.blocks.items():
+        conv, bn = block[0], block[1]
+        seen = {}
+        hook = conv.register_forward_hook(lambda m, i, o: seen.setdefault("o", o))
+        model(x)
+        hook.remove()
+        o = seen["o"].double()
+        mean, var = o.mean((0, 2, 3)), o.var((0, 2, 3), unbiased=False)
+        bn.weight.copy_(torch.sqrt(var + bn.eps).float())
+        bn.bias.copy_((mean + torch.from_numpy(weights[name + ".bias"]).to(o.device).double()).float())
+        bn.running_mean.copy_(mean.float())
+        bn.running_var.copy_(var.float())
+
+
+
 def main():
     a = argparse.ArgumentParser()
     a.add_argument("out")
@@ -117,6 +145,7 @@ def main():
     a.add_argument("--lr", type=float, default=3e-3)
     a.add_argument("--seed", type=int, default=1)
     a.add_argument("--shards-in-memory", type=int, default=SHARDS_IN_MEMORY)
+    a.add_argument("--init", help="exported weights (.npz) to start from")
     a = a.parse_args()
 
     torch.manual_seed(a.seed)
@@ -124,6 +153,10 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = DetNet().to(device)
     print("parameters", sum(p.numel() for p in model.parameters()), flush=True)
+    if a.init:
+        x, _ = load(a.shards[0])
+        initialize(model, dict(np.load(a.init)), torch.from_numpy(x[:96]).to(device).float().unsqueeze(1) / 255)
+        del x
     val = {}
     for v in a.val:
         x, y = load(v)
