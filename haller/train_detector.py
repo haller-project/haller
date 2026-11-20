@@ -146,12 +146,13 @@ def main():
     a.add_argument("--seed", type=int, default=1)
     a.add_argument("--shards-in-memory", type=int, default=SHARDS_IN_MEMORY)
     a.add_argument("--init", help="exported weights (.npz) to start from")
+    a.add_argument("--arch", default="base", help="network variant (haller.detector.ARCHS)")
     a = a.parse_args()
 
     torch.manual_seed(a.seed)
     rng = np.random.default_rng(a.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = DetNet().to(device)
+    model = DetNet(a.arch).to(device)
     print("parameters", sum(p.numel() for p in model.parameters()), flush=True)
     if a.init:
         x, _ = load(a.shards[0])

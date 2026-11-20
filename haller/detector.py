@@ -56,6 +56,23 @@ LAYERS = (
 HEAD_INPUT = "d1"
 
 
+def scaled(f: float) -> tuple:
+    """LAYERS with every width multiplied by f."""
+    return tuple((n, i, max(1, round(c * f)), p) for n, i, c, p in LAYERS)
+
+
+# Variants for capacity trials (training and float evaluation only; quantization and the C library use LAYERS)
+ARCHS = {
+    "base": LAYERS,
+    "w15": scaled(1.5),
+    "w2": scaled(2.0),
+    # one more convolution at each level of the encoder below 1/4 (1/8, 1/16, 1/32)
+    "deep": LAYERS[:3] + (("e3b", ("e3",), 32, False), ("e4", ("e3b",), 48, True), ("e4b", ("e4",), 48, False),
+                          ("e5", ("e4b",), 64, False)) + LAYERS[5:8] + (("e8b", ("e8",), 64, False),
+                          ("d4", ("e6", "up:e8b"), 32, False)) + LAYERS[9:],
+}
+
+
 
 def layer_inputs(name):
     return dict((n, i) for n, i, _, _ in LAYERS)[name]
@@ -63,11 +80,12 @@ def layer_inputs(name):
 
 
 class DetNet(nn.Module):
-    def __init__(self):
+    def __init__(self, arch: str = "base"):
         super().__init__()
+        self.layers = ARCHS[arch]
         channels = {"x": 1}
         self.blocks = nn.ModuleDict()
-        for name, inputs, out, _ in LAYERS:
+        for name, inputs, out, _ in self.layers:
             c = sum(channels[i.split(":")[-1]] for i in inputs)
             self.blocks[name] = nn.Sequential(nn.Conv2d(c, out, 3, padding=1, bias=False), nn.BatchNorm2d(out), nn.ReLU())
             channels[name] = out
@@ -76,7 +94,7 @@ class DetNet(nn.Module):
 
     def forward(self, x):
         t = {"x": x}
-        for name, inputs, _, pool in LAYERS:
+        for name, inputs, _, pool in self.layers:
             y = self.blocks[name](torch.cat([fetch(t, i) for i in inputs], 1))
             t[name] = F.max_pool2d(y, 2) if pool else y
         return self.head(t[HEAD_INPUT])
@@ -84,7 +102,7 @@ class DetNet(nn.Module):
 
     def export(self) -> dict:
         weights = {}
-        for name, _, _, _ in LAYERS:
+        for name, _, _, _ in self.layers:
             conv, bn = self.blocks[name][0], self.blocks[name][1]
             s = bn.weight / torch.sqrt(bn.running_var + bn.eps)
             weights[name + ".weight"] = (conv.weight * s.view(-1, 1, 1, 1)).detach().cpu().numpy()
@@ -92,7 +110,7 @@ class DetNet(nn.Module):
         weights["head.weight"] = self.head.weight.detach().cpu().numpy()
         weights["head.bias"] = self.head.bias.detach().cpu().numpy()
         weights = {k: v.astype(np.float32) for k, v in weights.items()}
-        weights["layers"] = np.array(json.dumps([[n, list(i), c, p] for n, i, c, p in LAYERS] + [[HEAD_INPUT]]))
+        weights["layers"] = np.array(json.dumps([[n, list(i), c, p] for n, i, c, p in self.layers] + [[HEAD_INPUT]]))
         return weights
 
 
@@ -122,11 +140,11 @@ def count_parameters(weights: dict) -> int:
 
 
 
-def multiply_accumulates() -> int:
+def multiply_accumulates(layers=LAYERS) -> int:
     """Multiply-accumulates of one inference."""
     w, h = INPUT_SIZE
     size, channels, total = {"x": (w, h)}, {"x": 1}, 0
-    for name, inputs, out, pool in LAYERS:
+    for name, inputs, out, pool in layers:
         first = inputs[0].split(":")[-1]
         sw, sh = size[first] if not inputs[0].startswith("up:") else (size[first][0] * 2, size[first][1] * 2)
         c = sum(channels[i.split(":")[-1]] for i in inputs)
