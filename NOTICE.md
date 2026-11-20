@@ -66,5 +66,8 @@ converted to grayscale and cropped to the card (pixels 696-1700 x 400-1801).
 ## Not redistributed
 
 Datasets are downloaded by the user with the commands of the README. Photos
-taken by users of the SeedSigner reader, and the real photos of the
-evaluation sets, are never included in this repository or in a release.
+taken by users of the SeedSigner reader are never included in this
+repository or in a release. The photos of a test set in use are not
+published; only the manifest of the set is (see the data publication policy
+of `RELEASING.md`). Photos published later, as training data or as a replaced
+test set, are listed here with their terms.

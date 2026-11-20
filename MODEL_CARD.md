@@ -57,8 +57,8 @@ wrong word could move funds without a human check.
 
 ## Training data
 
-All training data are public or synthetic. Photos taken by users of the
-reader are never used. Details and licenses: [`NOTICE.md`](NOTICE.md),
+All training data of Haller-1 are public or synthetic: no photo taken by a
+user of the reader and no photo of a participant is used. Details and licenses: [`NOTICE.md`](NOTICE.md),
 [`README.md`](README.md#data).
 
 | Data | Capitals expert | Lowercase expert | Detector |
@@ -74,6 +74,14 @@ Evaluation fonts and the EMNIST test split are excluded from
 training. No real photo of a seed is used in training or in the choice of a
 training epoch.
 
+### Data publication
+
+The training data are published in full, with their generators: simulated
+data, and, from later versions, photos of blank seed supports and photos of
+participants whose consent explicitly covers publication. Validation data
+are published. The test set is not (see [Test set](#test-set)). Policy:
+[`RELEASING.md`](RELEASING.md#data-publication-policy).
+
 ## Evaluation
 
 ### Worlds
@@ -88,6 +96,21 @@ photos does not hold for the device.
 | `seedsigner` | TBD | TBD | photos taken with a SeedSigner camera of test seeds written for this purpose (never used for funds) |
 | `phone` | TBD | TBD | photos sent by volunteers of the write-a-seed campaign (test seeds handed out by the campaign) |
 | `web` | TBD | TBD | public photos of handwritten test seeds found on the web |
+
+### Test set
+
+The photos of the `seedsigner`, `phone` and `web` worlds form the test set.
+They are kept private while they are in use, so that they do not reach the
+training data of later models, ours or others', and keep measuring reading
+on unseen handwriting; the web images are not ours to redistribute.
+
+| | |
+|---|---|
+| Manifest | `releases/haller-1/test-manifest.json`: SHA-256 of each file, composition by world, source, writing, support and number of words; no image, no seed |
+| SHA-256 of the manifest | TBD |
+| Evaluation code | published in this repository |
+| Other models | evaluated on the same set on request (issue of this repository) |
+| Publication | when a later version replaces the set, except photos without a consent to publication and web images (listed by source) |
 
 Definitions (per photo): **exact**, every word displayed is the written one;
 **valid and exact**, exact and reported valid with no word marked;
@@ -205,7 +228,8 @@ Raspberry Pi Zero (ARMv6, single core), SeedSigner's C library:
 A seed phrase gives full control of the funds it protects. The reader is meant
 for an offline device that keeps photos in memory only. The weights contain
 no seed and were trained on no real seed. Test seeds used for evaluation are
-random, valid and never used for funds; their photos are not published.
+random, valid and never used for funds; the photos of the test set are not
+published while the set is in use.
 
 ## Reproducibility
 

@@ -67,6 +67,57 @@ Weights are never committed outside `recipes/` data, and never under
 5. **After publication**: in the SeedSigner fork, set `published` to `true`
    in `haller-weights.json`; move the `Unreleased` entries of the changelog.
 
+## Data publication policy
+
+Decided on 20/11/2026, for Haller-1 and every later version.
+
+| Split | Content | Published |
+|---|---|---|
+| Training | simulated data and their generators; photos of blank seed supports taken by the maintainer (hands and background included); photos of participants whose consent explicitly covers publication | yes, all of it |
+| Validation | data used to choose epochs, temperature and thresholds | yes |
+| Test | SeedSigner camera photos (`eval_v3`) and their phone pairs; photos of participants of the write-a-seed campaign; images found on the web | no, while the set is in use |
+
+**Why the test set stays private.** Once a test set is public, it ends up,
+directly or through copies, in the training data of later models, ours or
+other people's, and stops measuring reading on handwriting the model has not
+seen. Images found on the web are not ours to redistribute in any case.
+
+**What makes the private set checkable.**
+
+1. **Manifest.** Each release publishes the manifest of its test set, built
+   by `python -m haller.test_manifest build` (see the module): the SHA-256 of
+   every file, the number of photos and their composition by world, source,
+   writing, support and number of words; no image, no seed, no file name.
+   The SHA-256 of the manifest is quoted in the model card and in
+   `releases/VERSION/EVALUATION.md`. The set cannot change after the results
+   are published without the digest changing.
+2. **Evaluation code.** The code that reads the test photos and computes the
+   numbers of the model card is published with the release.
+3. **Third-party models.** On request (issue of this repository), we evaluate
+   another model on the private set with the same code and publish the
+   numbers, with the manifest digest of the set used.
+4. **Replaced sets are published.** When a version uses a new test set (for
+   example at Haller-2), the previous set is published, and anyone can check
+   it against its manifest (`python -m haller.test_manifest verify`). Only
+   files that may be redistributed are published: our own photos (with the
+   agreement of the people who wrote the seeds), participants' photos whose
+   consent covers publication; photos sent with an evaluation consent only,
+   or with a training consent that did not mention publication, are never
+   published, and images found on the web are listed by their source address,
+   not redistributed. The manifest says which files are withheld.
+
+**Participants' consents.** The write-a-seed site records with each photo the
+version of the consent wording accepted. Version 1 (photos received before
+20/11/2026): training, no publication. Version 2: training and publication in
+the open training dataset. Only version 2 or later lets a photo enter the
+published training set; the export of the site applies this filter.
+
+**One photo, one split.** A photo is never both in a published training set
+and in a private test set. The participants' part of a test set is frozen at
+a date when the set is built; photos received later may go to training. A
+photo of a frozen test set leaves it only when the set is replaced and
+published.
+
 ## Conditions for haller-1
 
 Haller-1 is released when all of the following hold, not on a fixed date:
@@ -82,6 +133,11 @@ Haller-1 is released when all of the following hold, not on a fixed date:
 4. The reading times are measured on a Raspberry Pi Zero.
 5. The model card, `releases/haller-1/` and the changelog contain no `TBD`
    (`scripts/release.sh` refuses to tag otherwise).
+6. The manifest of the test set is built and committed as
+   `releases/haller-1/test-manifest.json` (it holds no image and no seed), its
+   SHA-256 quoted in the model card and in `releases/haller-1/EVALUATION.md`, and the code that evaluates the
+   test photos (photo-level reading and the metrics of the model card) is in
+   this repository.
 
 ## Making the repository public
 
@@ -123,8 +179,9 @@ deleted from the remote first.
    configuration or credential).
 5. **No photo of a person, no private photo.** List every image and archive
    blob of the history and account for each one: only the card templates of
-   `data/cards/` and generated figures are expected. Photos of the evaluation
-   sets and of users are never committed:
+   `data/cards/`, generated figures, and training photos published under the
+   data publication policy above are expected. Photos of a private test set
+   and photos without a consent to publication are never committed:
 
    ```bash
    git rev-list --all --objects | grep -iE '\.(jpe?g|png|gif|webp|heic|npz|npy|zip|tar|gz)$' | sort -k2 -u
