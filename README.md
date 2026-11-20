@@ -4,7 +4,7 @@ Haller reads handwritten BIP39 words. This repository is its training
 pipeline: from public data only, it produces the quantized weights read by
 `seedsigner.helpers.handwriting` in a SeedSigner fork, to load a seed from a
 photo of handwritten words
-([`handwritten-seed` branch](https://github.com/pizza-bitcoiner/seedsigner/tree/handwritten-seed), see
+([`handwritten-seed` branch](https://github.com/haller-project/seedsigner-haller/tree/handwritten-seed), see
 `docs/handwritten_seeds.md` there). Photos taken by users are never used.
 
 **Haller-1** is the first version (tag `haller-1`); the following ones will be
@@ -124,30 +124,84 @@ through the same code; a change to `preprocess.py` requires regenerating all dat
 
 ## Setup
 
+Linux x86-64, Python 3.10 or later, `make` and a C compiler (the C library of
+SeedSigner is built on first use), an NVIDIA GPU for training. Haller-1 was
+made with the versions pinned in `requirements-lock.txt`.
+
 ```bash
-# a SeedSigner checkout that contains src/seedsigner/helpers/handwriting
-export PYTHONPATH=/path/to/seedsigner/src
-pip install -e '.[train,names]'
+# SeedSigner with the handwriting reader: its preprocessing and C library are
+# used here. Haller-1 ships in commit 6126e85 of the handwritten-seed branch.
+git clone -b handwritten-seed https://github.com/haller-project/seedsigner-haller ../seedsigner
+export PYTHONPATH=$PWD/../seedsigner/src
+
+python -m venv .venv && . .venv/bin/activate
+pip install -c requirements-lock.txt -e '.[train,names]'
 ```
 
-Inputs to download (not redistributed here):
+Inputs to download (not redistributed here); the commands below expect them in
+the repository root:
 
-- a directory of handwriting fonts (`.ttf`/`.otf`);
-- EMNIST *byclass* training images as `EMNIST.npz`: `x` (N, 28, 28) uint8,
-  white ink on black, upright; `y` (N,) class index in the order
-  `0-9 A-Z a-z`, made by `python -m haller.emnist EMNIST.npz IDX_DIR` from
-  the byclass IDX files of the official release;
-- GNHK, split directory with the page `.jpg` files and their `.json` annotations;
+- **Fonts** (Google Fonts, pinned to a commit of the google/fonts repository,
+  SHA-256 checked, with their licenses in `LICENSES.json`):
+
+  ```bash
+  python -m haller.fonts fonts                                            # 287 fonts
+  python -m haller.fonts fonts_cursive --list data/fonts_cursive.sha256   # 115 cursive fonts
+  ```
+
+- **EMNIST** *byclass* training images as `EMNIST.npz`: `x` (N, 28, 28) uint8,
+  white ink on black, upright; `y` (N,) class index in the order `0-9 A-Z a-z`:
+
+  ```bash
+  curl -LO https://biometrics.nist.gov/cs_links/EMNIST/gzip.zip
+  # SHA-256 fb9bb67e33772a9cc0b895e4ecf36d2cf35be8b709693c3564cea2a019fcda8e
+  unzip gzip.zip && python -m haller.emnist EMNIST.npz gzip
+  ```
+
+- **GNHK**: page `.jpg` files and their `.json` annotations, in `GNHK/train`
+  and `GNHK/test`. The official page (https://goodnotes.com/gnhk) no longer
+  offers the download (November 2026); the Hugging Face dataset
+  `aryaman27/goodnotes-handwritten-dataset`, revision `9042977`, holds the same
+  files (`train_data/train`, `test_data/test`). Check them with
+  `(cd GNHK && sha256sum -c ../data/gnhk.sha256)`.
 - optionally the names dataset as Parquet files.
 
 Run all commands from the repository root (default paths are relative to it).
+Each generation process takes about 1 GB of memory and 20 minutes per shard of
+50,000 words on a laptop CPU core: the loops below start
+one process per shard; with less memory, start them in smaller groups.
+
+### What can be reproduced
+
+- **Data**: the synthetic shards and the GNHK crops are deterministic for given
+  inputs, seeds and library versions (the same on two machines). They are not
+  the samples Haller-1 was trained on: its shards were made by an earlier
+  version of `synth.py` (blur kernels up to 9x9, crops not clamped to the
+  image, another draw of the scale), so the current commands give shards of
+  the same kind with other samples. The capitals expert's GNHK crops were also
+  made before the EXIF fix (below).
+- **Training is not bit-reproducible**: `torch.backends.cudnn.benchmark` and the
+  GPU kernels make two runs with the same seed differ. A retrained model reaches
+  the same accuracy within the training-seed noise, not the same weights.
+- **Quantization is deterministic**: the published weights are obtained exactly
+  from the float models (`capitals.npz`, `lowercase.npz`), which are not
+  published in this repository.
+- **The selection of the epoch** uses `EVAL.npz`, which is not published (it
+  holds strips of real photos). `--eval` accepts any file of strips with
+  `x`, `w`, `y` (and optionally `reel`), for example a shard generated with
+  another seed and `--bip39-share 1.0`, with the BIP39 words of the GNHK test
+  split as real strips.
+- **The lowercase expert** also needs the shards s17 to s24, the GNHK error
+  filter, the vision check and the composition of the Emuru words, made by
+  scripts that are not in this repository yet: its training cannot be run
+  from this repository alone.
 
 ## Reproducing Haller-1: capitals expert
 
 ```bash
 # 1. Synthetic shards: 16 x 50,000 words, seed 1000 + i (one process per shard)
 for i in $(seq 1 16); do
-  python -m haller.generate s$i.npz 50000 $((1000 + i)) --fonts FONTS_DIR \
+  python -m haller.generate s$i.npz 50000 $((1000 + i)) --fonts fonts \
       --emnist EMNIST.npz --bip39 data/bip39_english.txt --other data/other_words.txt &
 done; wait
 
@@ -178,8 +232,8 @@ commit that introduced the name, with the calibration of the quantization in
 numpy; its PyTorch version gives one unit of difference on 10 to 16 biases of
 a layer (calibrated ranges differ by about 1e-6). The weights now shipped in
 SeedSigner were regenerated by the current `haller.quantize` from the same
-float models (same command, same inputs), so that the commands above
-reproduce them exactly: same share of strips read correctly on `EVAL.npz`
+float models (same command, same inputs), so that step 4 above reproduces
+them exactly from these float models (see [What can be reproduced](#what-can-be-reproduced)): same share of strips read correctly on `EVAL.npz`
 (capitals expert 96.32 % simulated, 98.26 % real; lowercase expert 96.13 % and
 98.96 %), same five best words on the 62 strips of the reference vectors, and
 on SeedSigner's 1,605 test photos the same results as before within one or two
@@ -273,11 +327,11 @@ lowercase and cursive writing:
 # 1. Cursive shards: 8 x 50,000 words, 85 % lowercase, whole words in the 115
 #    joined-script fonts listed in data/cursive_fonts.txt, seed 3000 + i
 for i in $(seq 1 8); do
-  python -m haller.generate c$i.npz 50000 $((3000 + i)) --cursive --fonts CURSIVE_FONTS_DIR \
+  python -m haller.generate c$i.npz 50000 $((3000 + i)) --cursive --fonts fonts_cursive \
       --emnist EMNIST.npz --bip39 data/bip39_english.txt --other data/other_words.txt &
 done; wait
 # validation words of the same fonts (BIP39 labels only are scored)
-python -m haller.generate val.npz 3000 3999 --cursive --fonts CURSIVE_FONTS_DIR \
+python -m haller.generate val.npz 3000 3999 --cursive --fonts fonts_cursive \
     --emnist EMNIST.npz --bip39 data/bip39_english.txt --other data/other_words.txt
 
 # 2. GNHK with the EXIF orientation; samples that the capitals expert reads with a
@@ -417,10 +471,10 @@ pens, writers and lighting, taken with the SeedSigner camera) go here. -->
 
 Datasets are downloaded by the user; none is redistributed in this repository.
 
-- **Fonts**: 287 handwriting fonts from Google Fonts, plus 27 Playwrite fonts
+- **Fonts**: 287 handwriting fonts from Google Fonts, plus 25 Playwrite fonts
   for the cursive shards, under the SIL Open Font License 1.1 or Apache
-  License 2.0. The per-font license list is expected as
-  `fonts/LICENSES.json`, alongside the font files.
+  License 2.0 (`data/fonts.sha256`, `data/fonts_cursive.sha256`). The per-font
+  license list is written as `fonts/LICENSES.json` by `haller.fonts`.
 - **EMNIST**: Cohen, Afshar, Tapson, van Schaik, "EMNIST: an extension of MNIST
   to handwritten letters", 2017; derived from NIST Special Database 19 (public
   domain, NIST terms of use).
@@ -448,6 +502,6 @@ MIT, see `LICENSE`.
   author  = {{Pizza Bitcoiner}},
   year    = {2026},
   version = {haller-1},
-  url     = {https://github.com/pizza-bitcoiner/haller}
+  url     = {https://github.com/haller-project/haller}
 }
 ```

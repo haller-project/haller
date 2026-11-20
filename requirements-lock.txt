@@ -1,0 +1,6 @@
+# Versions used to make Haller-1 (pip install -c requirements-lock.txt -e '.[train,names]').
+# Pillow renders the fonts of the synthetic data: another version may change the shards.
+numpy==2.5.5
+pillow==13.0.0
+embit==0.8.0
+torch==2.15.0
