@@ -3,11 +3,11 @@ The reference vectors shipped in SeedSigner (resources/handwriting/*-vectors.jso
 match the C library, and the quantized model agrees with the float model it
 comes from (haller.vectors.check_float).
 
-    HALLER_FLOAT="haller-1-capitals=capitals.npz,haller-1-lowercase=lowercase.npz" \
-        PYTHONPATH=.:SEEDSIGNER/src pytest tests
+    PYTHONPATH=.:SEEDSIGNER/src pytest tests
 
-The float weights are not in this repository: without HALLER_FLOAT only the C
-outputs are checked.
+The float models of Haller-1 are in recipes/haller-1/data; HALLER_FLOAT
+("NAME=FLOAT.npz,...", NAME being the weights file without .npz) checks other
+ones.
 """
 import glob
 import json
@@ -20,8 +20,11 @@ from seedsigner.helpers.handwriting import native as seedsigner_native
 from haller import native, vectors
 
 RESOURCES = os.path.join(os.path.dirname(seedsigner_native.__file__), "..", "..", "..", "resources", "handwriting")
-FILES = sorted(glob.glob(os.path.join(RESOURCES, "*-vectors.json")))
-FLOAT = dict(item.split("=", 1) for item in os.environ.get("HALLER_FLOAT", "").split(",") if item)
+# vectors of the word models (with "strips"); the detector's are checked by its own tests
+FILES = [p for p in sorted(glob.glob(os.path.join(RESOURCES, "*-vectors.json"))) if "strips" in json.load(open(p))]
+RECIPES = os.path.join(os.path.dirname(__file__), "..", "recipes", "haller-1", "data")
+FLOAT = {name: os.path.join(RECIPES, f"{name}-float.npz") for name in ("haller-1-capitals", "haller-1-lowercase")}
+FLOAT.update(item.split("=", 1) for item in os.environ.get("HALLER_FLOAT", "").split(",") if item)
 
 
 
