@@ -58,7 +58,8 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("out")
     p.add_argument("shards", nargs="+")
-    p.add_argument("--eval", required=True)
+    p.add_argument("--eval", required=True,
+                   help="evaluation strips (x, w, y, optional boolean `reel`: strips of real photos, a test set)")
     p.add_argument("--channels", type=int, nargs=3, default=[16, 32, 64])
     p.add_argument("--hidden", type=int, default=128)
     p.add_argument("--epochs", type=int, default=10)
@@ -77,7 +78,7 @@ def main():
     torch.backends.cudnn.benchmark = True
     calibration = quantize.calibration_inks(a.shards[0], 3000, 1)
     ev = np.load(a.eval)
-    ev_x, ev_w, ev_y, ev_real = ev["x"], ev["w"].astype(np.int64), [str(y) for y in ev["y"]], ev["reel"].astype(bool)
+    ev_x, ev_w, ev_y, ev_real = ev["x"], ev["w"].astype(np.int64), [str(y) for y in ev["y"]], (ev["reel"].astype(bool) if "reel" in ev.files else np.zeros(len(ev["w"]), bool))
     if a.val:
         va = np.load(a.val)
         va_x, va_w, va_y = va["x"], va["w"].astype(np.int64), [str(y) for y in va["y"]]
