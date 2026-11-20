@@ -225,7 +225,8 @@ def integer_forward(q: dict, image: np.ndarray) -> np.ndarray:
         v = (acc * q[name + ".mul"] + (1 << (SHIFT - 1))) >> SHIFT
         t[name] = np.where(acc > 0, np.minimum(v, AMAX), 0)
     acc = conv(t[HEAD_INPUT], q["head.weight"])
-    return (acc * q["head.scale"] + q["head.bias"]).astype(np.float32).transpose(2, 0, 1)
+    # float32 products and sums, as in the C library
+    return (acc.astype(np.float32) * q["head.scale"] + q["head.bias"]).transpose(2, 0, 1)
 
 
 
