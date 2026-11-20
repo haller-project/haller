@@ -10,8 +10,13 @@ Outputs, at half the input resolution (144 x 192), one map per channel:
   2 card: light inner area of an official seed card;
   3-6 card corners: top left, top right, bottom right, bottom left of that
     area (Gaussian peaks), in the reading orientation of the card;
-  7 height of the word or number box, on the kernels (output pixels / 8).
-Channels 0-6 are logits, channel 7 a value.
+  7 height of the word or number box, on the kernels (output pixels / 8);
+  8 card kernel: card area shrunk to 88 % around its center, so that cards
+    side by side on a sheet stay apart;
+  9 link: band from the center of a line number to the start of its word;
+  10 partial word: kernel of a word cut by the frame or partly hidden (finger,
+    pen, glare, hard shadow), also marked in channel 0.
+Channels 0-6 and 8-10 are logits, channel 7 a value.
 
 Layers: 3x3 convolutions with batch normalization folded at export, ReLU,
 2x2 max pooling, nearest upsampling and channel concatenation, which are the
@@ -27,8 +32,8 @@ import torch.nn.functional as F
 
 INPUT_SIZE = (288, 384)   # width, height
 OUTPUT_SIZE = (144, 192)
-CHANNELS = 8
-WORD, NUMBER, CARD, CORNERS, HEIGHT = 0, 1, 2, (3, 4, 5, 6), 7
+CHANNELS = 11
+WORD, NUMBER, CARD, CORNERS, HEIGHT, CARD_KERNEL, LINK, PARTIAL = 0, 1, 2, (3, 4, 5, 6), 7, 8, 9, 10
 HEIGHT_SCALE = 8.0
 
 # (name, input tensors, output channels, max pooling after the convolution)
@@ -195,7 +200,7 @@ def quantize(weights: dict, amax: dict) -> dict:
 
 
 def integer_forward(q: dict, image: np.ndarray) -> np.ndarray:
-    """Reference of the integer computation in numpy (slow): output maps (8, 192, 144) of a photo (384, 288)."""
+    """Reference of the integer computation in numpy (slow): output maps (CHANNELS, 192, 144) of a photo (384, 288)."""
     t = {"x": image.astype(np.int64)[:, :, None] << 3}
 
     def conv(x, w):

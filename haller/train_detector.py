@@ -1,13 +1,16 @@
 """
 Trains the word detector (haller.detector) on shards of photos with target maps
-(x: N x 384 x 288 uint8, y: N x 192 x 144 x 9 uint8, see haller.detector and
+(x: N x 384 x 288 uint8, y: N x 192 x 144 x 12 uint8, see haller.detector and
 the page generator), and writes the float weights (batch normalization folded).
 
     python -m haller.train_detector OUT.npz SHARD.npz... --val VAL.npz... [--epochs 12]
 
 Shards are read a few at a time (each holds about 360 MB uncompressed). Target
 channels: 0 word kernel, 1 number kernel, 2 card, 3-6 card corners (0-255),
-7 box height x 8 in output pixels, 8 ignored area (255).
+7 box height x 8 in output pixels, 8 card kernel, 9 link, 10 partial word,
+11 ignored area (255). Shards of 9 channels (no card kernel, link nor partial
+word, ignored area in 8) are read as well: their missing channels are left out
+of the loss.
 """
 import argparse
 import json
@@ -17,22 +20,30 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from .detector import CARD, CORNERS, HEIGHT, HEIGHT_SCALE, NUMBER, WORD, DetNet
+from .detector import CARD, CARD_KERNEL, CORNERS, HEIGHT, HEIGHT_SCALE, LINK, NUMBER, PARTIAL, WORD, DetNet
 
 SHARDS_IN_MEMORY = 2
 
 
 
 def load(path):
+    """x, y of a shard; y always has 12 channels, those of a 9-channel shard being filled with UNKNOWN in 8-10."""
     d = np.load(path)
-    return d["x"], d["y"]
+    x, y = d["x"], d["y"]
+    if y.shape[-1] == 9:
+        pad = np.full(y.shape[:-1] + (3,), UNKNOWN, np.uint8)
+        y = np.concatenate([y[..., :8], pad, y[..., 8:9]], -1)
+    return x, y
+
+
+UNKNOWN = 1   # value of a target channel absent from a shard (an actual target is 0 or 255)
 
 
 
 def losses(out, y):
-    """Per-term losses of a batch: out (B, 8, H, W) logits/values, y (B, H, W, 9) uint8 on the device."""
+    """Per-term losses of a batch: out (B, 11, H, W) logits/values, y (B, H, W, 12) uint8 on the device."""
     y = y.permute(0, 3, 1, 2).float()
-    keep = (y[:, 8] < 128).float()
+    keep = (y[:, 11] < 128).float()
     terms = {}
     for name, c in (("word", WORD), ("number", NUMBER)):
         t = (y[:, c] > 127).float()
@@ -43,6 +54,11 @@ def losses(out, y):
         dice = 1 - (2 * inter + 1) / ((p * keep).sum() + (t * keep).sum() + 1)
         terms[name] = bce * 5 + dice
     terms["card"] = F.binary_cross_entropy_with_logits(out[:, CARD], (y[:, CARD] > 127).float())
+    known = (y[:, CARD_KERNEL, :1, :1] != UNKNOWN).float()   # per image
+    for name, c, weight in (("kernel", CARD_KERNEL, 1.0), ("link", LINK, 3.0), ("partial", PARTIAL, 3.0)):
+        t = (y[:, c] > 127).float()
+        bce = F.binary_cross_entropy_with_logits(out[:, c], t, reduction="none") * (1 + weight * t)
+        terms[name] = (bce * known).sum() / (known.sum() * t.shape[1] * t.shape[2]).clamp(min=1)
     tc = y[:, list(CORNERS)] / 255
     w = 1 + 30 * tc
     terms["corners"] = (F.binary_cross_entropy_with_logits(out[:, list(CORNERS)], tc, reduction="none") * w).mean() * 4
@@ -75,7 +91,7 @@ def evaluate(model, sets, device):
                 xb = torch.from_numpy(x[i:i + 32]).to(device).float().unsqueeze(1) / 255
                 yb = torch.from_numpy(y[i:i + 32]).to(device)
                 out = model(xb)
-                keep = yb[..., 8] < 128
+                keep = yb[..., 11] < 128
                 for c, acc in ((WORD, "w"), (NUMBER, "n")):
                     p = (out[:, c] > 0) & keep
                     t = (yb[..., c] > 127) & keep
@@ -100,6 +116,7 @@ def main():
     a.add_argument("--batch", type=int, default=24)
     a.add_argument("--lr", type=float, default=3e-3)
     a.add_argument("--seed", type=int, default=1)
+    a.add_argument("--shards-in-memory", type=int, default=SHARDS_IN_MEMORY)
     a = a.parse_args()
 
     torch.manual_seed(a.seed)
@@ -120,8 +137,8 @@ def main():
     for epoch in range(1, a.epochs + 1):
         order = rng.permutation(len(a.shards))
         sums, n = {}, 0
-        for g in range(0, len(order), SHARDS_IN_MEMORY):
-            parts = [load(a.shards[k]) for k in order[g:g + SHARDS_IN_MEMORY]]
+        for g in range(0, len(order), a.shards_in_memory):
+            parts = [load(a.shards[k]) for k in order[g:g + a.shards_in_memory]]
             x = np.concatenate([p[0] for p in parts])
             y = np.concatenate([p[1] for p in parts])
             del parts
