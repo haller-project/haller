@@ -18,6 +18,17 @@ without dictionary (greedy CTC decoding) and with the BIP39 dictionary:
     python -m haller.filter read MODEL.npz OUT_PREFIX CANDIDATES.npz [...]
         -> OUT_PREFIX_exact.npz, OUT_PREFIX_near.npz (with field `read`)
     python -m haller.filter verify NEAR.npz OUT.npz --url http://127.0.0.1:8097/v1/vision
+
+GNHK crops (haller.gnhk) have a third filter, without candidates: a sample is
+dropped when the model's greedy reading has a character error rate above 0.8
+against its label (another line, a word cropped upside down) or when it is
+almost blank (less than 2 % of its pixels darker than 96 out of 255):
+
+    python -m haller.filter gnhk MODEL.npz GNHK.npz OUT.npz [--mask MASK.npy]
+
+The readings are computed on the GPU when there is one; a few samples whose
+error rate is at the threshold can be kept on one device and not on the other.
+`--mask` applies a selection written earlier (`--write-mask`) instead.
 """
 import argparse
 import base64
@@ -194,6 +205,30 @@ def verify_command(a):
 
 
 
+def gnhk_command(a):
+    weights = {k: torch.from_numpy(v).to(DEVICE) for k, v in np.load(a.model).items()}
+    d = np.load(a.samples)
+    x, w, y = d["x"], d["w"], np.array([str(t) for t in d["y"]])
+    read = []
+    with torch.no_grad():
+        for s in range(0, len(y), BATCH):
+            read += greedy_read(network(weights, x[s:s + BATCH]), w[s:s + BATCH])
+    cer = np.array([edit_distance(r, t) / max(1, len(t)) for r, t in zip(read, y)])
+    ink = np.array([(x[i, :, :w[i]] > 96).mean() for i in range(len(y))])
+    keep = (cer <= a.max_cer) & (ink >= a.min_ink)
+    if a.mask:
+        mask = np.unpackbits(np.load(a.mask))[:len(y)].astype(bool)
+        print(f"selection of {a.mask}: {int((mask != keep).sum())} samples differ from this reading")
+        keep = mask
+    if a.write_mask:
+        np.save(a.write_mask, np.packbits(keep))
+    extra = {"page": np.array([str(p) for p in d["page"]])[keep]} if "page" in d.files else {}
+    save(a.out, x[keep], w[keep], y[keep], **extra)
+    print(f"{int(keep.sum())}/{len(y)} kept ({int((ink < a.min_ink).sum())} almost blank, "
+          f"{int((cer > a.max_cer).sum())} with a character error rate above {a.max_cer})")
+
+
+
 def main():
     p = argparse.ArgumentParser()
     sub = p.add_subparsers(dest="command", required=True)
@@ -207,8 +242,16 @@ def main():
     v.add_argument("out")
     v.add_argument("--url", default="http://127.0.0.1:8097/v1/vision")
     v.add_argument("--threshold", type=float, default=0.9)
+    g = sub.add_parser("gnhk")
+    g.add_argument("model")
+    g.add_argument("samples")
+    g.add_argument("out")
+    g.add_argument("--max-cer", type=float, default=0.8)
+    g.add_argument("--min-ink", type=float, default=0.02)
+    g.add_argument("--mask", help="packed boolean selection (numpy .npy) applied instead of the computed one")
+    g.add_argument("--write-mask", help="writes the selection as a packed boolean array (numpy .npy)")
     a = p.parse_args()
-    read_command(a) if a.command == "read" else verify_command(a)
+    {"read": read_command, "verify": verify_command, "gnhk": gnhk_command}[a.command](a)
 
 
 
