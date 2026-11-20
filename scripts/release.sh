@@ -114,6 +114,16 @@ for name in "${NAMES[@]}"; do
         || die "the digest of $name is missing from MODEL_CARD.md or NOTES.md"
 done
 info "weights: ${#NAMES[@]} files match $REL/weights.sha256"
+# Manifest of the SeedSigner fork, when the weights come from its resources
+if [ -f "$WEIGHTS/haller-weights.json" ]; then
+    M="$WEIGHTS/haller-weights.json"
+    grep -q "\"version\": \"$VERSION\"" "$M" || die "$M does not name the version $VERSION"
+    while read -r digest name; do
+        grep -q "\"$name\": \"$digest\"" "$M" || die "$M does not list $name with its digest"
+    done < "$REL/weights.sha256"
+    [ "$(grep -c '\.npz": "' "$M")" = "${#NAMES[@]}" ] || die "$M lists other weights than $REL/weights.sha256"
+    info "weights: SeedSigner manifest agrees"
+fi
 
 # 6. Release files, from the tagged commit (not from the working tree)
 if [ -z "$OUT" ]; then
