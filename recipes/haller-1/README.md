@@ -14,6 +14,7 @@ weights of the same kind, not these ones.
 | GNHK crops (both experts) | exactly | `haller1.gnhk` (capitals), current `haller.gnhk` (lowercase) |
 | GNHK error filter (lowercase) | exactly | `haller.filter gnhk` with the published selection mask |
 | Emuru words (lowercase) | published as data | generated on a GPU and checked by a vision model |
+| Simulated evaluation strips | exactly | `evalsim/regenerate.sh`: official EMNIST archive, `haller.pages`, page reader of the time |
 | Training | same level, not the same bits | float models published; see [Training](#training) |
 | Quantization and reference vectors | exactly | current `haller.quantize`, from the published float models (see [Quantization](#quantization)) |
 
@@ -24,7 +25,7 @@ weights of the same kind, not these ones.
 | `haller1/` | the package as it was when the data and the float models were made (`synth.py`, `generate.py`, `gnhk.py`: 17/11/2026; `model.py`, `dictionary.py`, `train_capitals.py`: training of the capitals expert; `train_lowercase.py`: training of the lowercase expert). Files kept byte for byte; their docstrings use the earlier package name `seedsigner_ocr`. |
 | `data/haller-1-capitals-float.npz`, `data/haller-1-lowercase-float.npz` | float models (batch normalization folded), inputs of the quantization |
 | `data/train-capitals.log`, `data/train-lowercase.log` | their training logs (score per epoch) |
-| `data/haller-1-eval-simulated.npz` | the 9,156 simulated strips of `EVAL.npz` |
+| `evalsim/` | regeneration of `data/haller-1-eval-simulated.npz`, the 9,156 simulated strips of `EVAL.npz` (derived from EMNIST, not stored): `regenerate.sh`, the page reader of the time (`cut.py`, `preprocess.py`), the page order (`pages.txt`) and the SHA-256 of the 800 photos (`photos.sha256`) |
 | `data/gnhk_train_f.mask.npy` | GNHK samples kept by the error filter (packed booleans) |
 | `data/emuru_train.npz` | 12,744 generated words, capitals and lowercase |
 | `data/emuru_c31.npz`, `emuru_c32.npz`, `emuru_c33.npz` | generated lowercase words, three compositions |
@@ -205,7 +206,31 @@ epoch; the real ones are a test set and stay private.
 `y`, `page`, `layout` and `reel`, always false): with it, both training
 scripts and `haller.train` select the epoch exactly as with `EVAL.npz`. The
 simulated photos are seed lists and SeedSigner cards written with EMNIST test
-letters (never seen in training), cut by SeedSigner's page detection.
+letters (never seen in training).
+
+The strips are derived from EMNIST, so the repository holds the way to make
+them instead of the file. Run before the commands above that read it:
+
+```bash
+uv venv -p 3.12 venv-evalsim && uv pip install -p venv-evalsim/bin/python numpy pillow==12.2.0
+PYTHON=venv-evalsim/bin/python recipes/haller-1/evalsim/regenerate.sh evalsim-work 4   # work directory, processes
+```
+
+Pillow 13 changed its bilinear resize: with it, 6 of the 9,156 strips differ
+by one gray level, so the script requires Pillow < 13 (versions 10.4 to 12.2
+give the same strips; the photos are the same with Pillow 13 too).
+
+The script downloads the EMNIST archive from NIST (562 MB, SHA-256 checked),
+converts the byclass test split with `haller.emnist`, writes 800 photos with
+`haller.pages` (seeds 11 to 18, 100 photos each; every JPEG file is checked
+against `evalsim/photos.sha256`), cuts them into word strips with
+`evalsim/cut.py`, and checks the content digest of the result against
+`SHA256SUMS.content`. `cut.py` is the page reader that cut the original
+strips, reduced to the code that cutting uses and translated to English;
+`evalsim/preprocess.py` is SeedSigner's word normalization as it was then.
+Photos whose number of strips differs from their number of words are
+skipped, as in the original run (654 of the 800 photos are kept), and
+`evalsim/pages.txt` restores the original order of the pages.
 
 ## Checksums
 
@@ -228,7 +253,7 @@ software give the same weights.
 
 **Retraining check (capitals expert).** The exact data of Haller-1 (s1-s16
 and `gnhk_capitals.npz`, in the order above), the current `haller.train` with
-`--deterministic`, the published evaluation strips, 8 epochs. The losses per
+`--deterministic`, the regenerated evaluation strips, 8 epochs. The losses per
 epoch follow the original run to within 0.002 (1.5768 against 1.5784 at epoch
 1, 0.6668 against 0.6683 at epoch 8), and epoch 8 is selected again. Two runs
 give the same weights after their first epoch (same SHA-256). Quantized and
@@ -246,6 +271,21 @@ capitals as valid with a wrong word, which the published weights read
 correctly. The absence of wrong valid seeds on the test photos is measured on
 the published weights, not guaranteed by the recipe: weights retrained from it
 must be measured again before replacing them.
+
+**Retraining check (lowercase expert).** The exact data (the files of the
+lowercase recipe, in its order), the current `haller.train` with
+`--deterministic`, `--val val.npz`, 10 epochs: epoch 10 is selected again,
+the losses follow the original run to within 0.01. Quantized; the
+1,605-photo column is the whole engine (published capitals expert, the
+lowercase expert replaced):
+
+| Lowercase expert | EVAL simulated | EVAL real | Cursive validation | GNHK test words | 1,605 photos | Neat cursive (301) |
+|---|---|---|---|---|---|---|
+| Haller-1 (published) | 96.13 % | 98.96 % | 80.14 % | 69.40 % | 1,197 / 1,288 / 0 | 106 / 153 / 0 |
+| Retrained | 96.22 % | 98.26 % | 81.48 % | 69.19 % | 1,188 / 1,292 / 0 | 98 / 155 / 0 |
+
+Same level, no wrong valid seed; the published weights report 9 more seeds
+as valid and exact, and stay the shipped ones.
 
 ## Calibration fonts
 

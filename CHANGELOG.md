@@ -22,4 +22,7 @@ First release.
   used by SeedSigner when its page rules find no valid seed.
 - Quantization to 16-bit weights and 12-bit activations; reference vectors
   checked bit for bit by SeedSigner's C library.
-- Recipe of the exact weights in `recipes/haller-1`.
+- Recipe of the exact weights in `recipes/haller-1`; the simulated evaluation
+  strips, derived from EMNIST, are regenerated from the official archive
+  (`recipes/haller-1/evalsim`) instead of being stored.
+- Weights under the MIT License, with the third-party notices of `NOTICE.md`.

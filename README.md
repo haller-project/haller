@@ -203,9 +203,12 @@ that cannot be regenerated and the content digests of every file.
   weights. `haller.train --deterministic` makes new runs bit-identical on the
   same hardware and software.
 - **The selection of the epoch** uses only the simulated strips of
-  `EVAL.npz`; they are published as
-  `recipes/haller-1/data/haller-1-eval-simulated.npz`. The 288 strips of real
-  photos (a test set) are not published.
+  `EVAL.npz`. They are drawn with EMNIST test letters, so they are not stored
+  in the repository: `recipes/haller-1/evalsim/regenerate.sh` downloads the
+  official EMNIST archive and writes them to
+  `recipes/haller-1/data/haller-1-eval-simulated.npz`, identical to those of
+  Haller-1 (content digest checked). The 288 strips of real photos (a test
+  set) are not published.
 - **Generated handwriting** (Emuru) and the vision-model checks are not
   bit-reproducible (GPU sampling, served model): the strips used by the
   lowercase expert are published in `recipes/haller-1/data`.
@@ -223,6 +226,7 @@ done; wait
 python -m haller.gnhk gnhk_train.npz GNHK/train 4 1
 
 # 3. Training: 8 epochs, best epoch on the simulated evaluation strips
+#    (written by recipes/haller-1/evalsim/regenerate.sh)
 python -m haller.train capitals.npz s{1..16}.npz gnhk_train.npz \
     --eval recipes/haller-1/data/haller-1-eval-simulated.npz --epochs 8
 
@@ -422,14 +426,16 @@ the details and the data. The epoch selected was 10.
 
 ## Evaluation
 
-`EVAL.npz` holds word strips cut by SeedSigner's page detection (`page.py`)
-from full photos of handwritten seeds, with their BIP39 word: 9,156 strips from
+`EVAL.npz` holds word strips cut from full photos of handwritten seeds by the
+page reader of the time (`recipes/haller-1/evalsim/cut.py`), with their BIP39 word: 9,156 strips from
 simulated photos and 288 from real photos (field `reel`, boolean). The metric is
 the share of strips whose most probable BIP39 word is correct; since Haller-1
 it is computed on the quantized model by SeedSigner's C library
 (`haller.evaluate`; the table below was measured on the float models). The best epoch is selected on simulated strips
-only; real strips are a test set. The simulated strips are published
-(`recipes/haller-1/data/haller-1-eval-simulated.npz`); the real ones are not.
+only; real strips are a test set. The simulated strips are regenerated from
+the official EMNIST archive by `recipes/haller-1/evalsim/regenerate.sh`
+(`recipes/haller-1/data/haller-1-eval-simulated.npz`); the real ones are not
+published.
 
 | Model | Channels | Data | Simulated | Real | Speed |
 |---|---|---|---|---|---|
@@ -525,18 +531,20 @@ pens, writers and lighting, taken with the SeedSigner camera) go here. -->
 ## Data sources and licenses
 
 Datasets are downloaded by the user; no dataset is redistributed in this
-repository. `recipes/haller-1/data` holds files derived from them (simulated
-evaluation strips drawn with EMNIST test letters and fonts, words generated in
-the style of GNHK writers, a selection mask of GNHK samples), under the terms
-and attributions of [`NOTICE.md`](NOTICE.md).
+repository. `recipes/haller-1/data` holds files derived from GNHK (words
+generated in the style of GNHK writers, a selection mask of GNHK samples),
+under the terms and attributions of [`NOTICE.md`](NOTICE.md). Files derived
+from EMNIST are never stored: the simulated evaluation strips are regenerated
+from the official archive.
 
 - **Fonts**: 287 handwriting fonts from Google Fonts, plus 25 Playwrite fonts
   for the cursive shards, under the SIL Open Font License 1.1 or Apache
   License 2.0 (`data/fonts.sha256`, `data/fonts_cursive.sha256`). The per-font
   license list is written as `fonts/LICENSES.json` by `haller.fonts`.
 - **EMNIST**: Cohen, Afshar, Tapson, van Schaik, "EMNIST: an extension of MNIST
-  to handwritten letters", 2017; derived from NIST Special Database 19 (public
-  domain, NIST terms of use).
+  to handwritten letters", 2017; derived from NIST Special Database 19. No
+  license is stated; the authors ask to be cited and NIST to be acknowledged
+  as the source.
 - **GNHK**: GoodNotes Handwriting in the Wild (GoodNotes), Lee et al.,
   "GNHK: A Dataset for English Handwriting in the Wild", ICDAR 2021, CC BY 4.0.
   Word images are cropped and normalized by `gnhk.py`.
