@@ -10,8 +10,14 @@ library (haller.evaluate), as it will run on the device, on EVAL.npz (word
 images cut from photos by SeedSigner's page detection: x, w, y as in the
 shards, and a boolean `reel` field marking the strips of real photos): share
 of words whose most probable BIP39 word is the right one, on simulated and on
-real strips. The float weights of the best epoch on simulated strips are
-written to OUT.npz.
+real strips (EVAL.npz may have no `reel` field: every strip is then simulated,
+and the real score printed is 0). The float weights of the last epoch are
+written to OUT.npz; with --select best, those of the epoch with the best
+simulated score (with --val, the best mean of the simulated and VAL scores).
+
+The learning rate follows a one-cycle schedule over --epochs; --stop-after N
+ends the run after epoch N with the schedule unchanged, so that epoch N of a
+longer schedule is reproduced without training the remaining epochs.
 """
 import argparse
 import json
@@ -157,8 +163,15 @@ def main():
     p.add_argument("--batch", type=int, default=256)
     p.add_argument("--lr", type=float, default=2e-3)
     p.add_argument("--seed", type=int, default=1)
-    p.add_argument("--val", help="second validation set (x, w, y): the best epoch maximizes the mean of the "
-                                 "simulated EVAL score and of this one")
+    p.add_argument("--val", help="second validation set (x, w, y), scored at every epoch; with --select best, the "
+                                 "best epoch maximizes the mean of the simulated EVAL score and of this one")
+    p.add_argument("--select", choices=("last", "best"), default="last",
+                   help="weights written to OUT.npz: those of the last epoch (default), or of the epoch with the best "
+                        "simulated score. The simulated strips do not rank the epochs of a fine-tuning on the reading "
+                        "of real photos (an epoch in the middle of the schedule can score best and read real strips "
+                        "worse), so the last epoch, at the end of the schedule, is the default")
+    p.add_argument("--stop-after", type=int,
+                   help="stop after this epoch, the learning-rate schedule still spanning --epochs")
     p.add_argument("--eval-processes", type=int, default=1, help="processes of the evaluation by the C library")
     p.add_argument("--fast", action="store_true",
                    help="shards decompressed once (cached next to them) and copied to the GPU one at a time, the next "
@@ -170,6 +183,9 @@ def main():
                    help="bit-identical runs on the same hardware and software: deterministic GPU kernels, "
                         "CTC loss computed on the CPU (about 10 %% slower)")
     a = p.parse_args()
+    last_epoch = a.epochs if a.stop_after is None else a.stop_after
+    if not 1 <= last_epoch <= a.epochs:
+        p.error("--stop-after must be between 1 and --epochs")
 
     if a.deterministic:
         os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")  # read when cuBLAS is first used
@@ -214,16 +230,20 @@ def main():
     def keep_best():
         nonlocal best
         for epoch, weights, sim, real, val in sorted(pending, key=lambda item: item[0]):
-            score = (sim + val) / 2 if a.val else sim
+            if a.select == "last":
+                score = float(epoch)  # epochs are kept in order: the last one is written last
+            else:
+                score = (sim + val) / 2 if a.val else sim
             if score >= best:  # selection on simulated photos only; real photos are a test set
                 best = score
                 np.savez(a.out, **weights)
-                json.dump(dict(channels=a.channels, hidden=a.hidden, epoch=epoch + 1, simulated=sim, real=real,
-                               val=val), open(a.out.replace(".npz", ".json"), "w"), indent=1)
+                json.dump(dict(channels=a.channels, hidden=a.hidden, epoch=epoch + 1, epochs=a.epochs, lr=a.lr,
+                               select=a.select, simulated=sim, real=real, val=val),
+                          open(a.out.replace(".npz", ".json"), "w"), indent=1)
         pending.clear()
 
     evaluation = None
-    for epoch in range(a.epochs):
+    for epoch in range(last_epoch):
         loss_sum, n_batches = torch.zeros((), device=device), 0
         order_shards = rng.permutation(len(a.shards))
         if a.fast:
