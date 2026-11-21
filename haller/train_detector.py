@@ -1,13 +1,16 @@
 """
 Trains the word detector (haller.detector) on shards of photos with target maps
-(x: N x 384 x 288 uint8, y: N x 192 x 144 x 9 uint8, see haller.detector and
+(x: N x 384 x 288 uint8, y: N x 192 x 144 x 12 uint8, see haller.detector and
 the page generator), and writes the float weights (batch normalization folded).
 
     python -m haller.train_detector OUT.npz SHARD.npz... --val VAL.npz... [--epochs 12]
 
 Shards are read a few at a time (each holds about 360 MB uncompressed). Target
 channels: 0 word kernel, 1 number kernel, 2 card, 3-6 card corners (0-255),
-7 box height x 8 in output pixels, 8 ignored area (255).
+7 box height x 8 in output pixels, 8 card kernel, 9 link, 10 partial word,
+11 ignored area (255). Shards of 9 channels (no card kernel, link nor partial
+word, ignored area in 8) are read as well: their missing channels are left out
+of the loss.
 """
 import argparse
 import json
@@ -17,22 +20,30 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from .detector import CARD, CORNERS, HEIGHT, HEIGHT_SCALE, NUMBER, WORD, DetNet
+from .detector import CARD, CARD_KERNEL, CORNERS, HEIGHT, HEIGHT_SCALE, LINK, NUMBER, PARTIAL, WORD, DetNet
 
 SHARDS_IN_MEMORY = 2
 
 
 
 def load(path):
+    """x, y of a shard; y always has 12 channels, those of a 9-channel shard being filled with UNKNOWN in 8-10."""
     d = np.load(path)
-    return d["x"], d["y"]
+    x, y = d["x"], d["y"]
+    if y.shape[-1] == 9:
+        pad = np.full(y.shape[:-1] + (3,), UNKNOWN, np.uint8)
+        y = np.concatenate([y[..., :8], pad, y[..., 8:9]], -1)
+    return x, y
+
+
+UNKNOWN = 1   # value of a target channel absent from a shard (an actual target is 0 or 255)
 
 
 
 def losses(out, y):
-    """Per-term losses of a batch: out (B, 8, H, W) logits/values, y (B, H, W, 9) uint8 on the device."""
+    """Per-term losses of a batch: out (B, 11, H, W) logits/values, y (B, H, W, 12) uint8 on the device."""
     y = y.permute(0, 3, 1, 2).float()
-    keep = (y[:, 8] < 128).float()
+    keep = (y[:, 11] < 128).float()
     terms = {}
     for name, c in (("word", WORD), ("number", NUMBER)):
         t = (y[:, c] > 127).float()
@@ -43,6 +54,11 @@ def losses(out, y):
         dice = 1 - (2 * inter + 1) / ((p * keep).sum() + (t * keep).sum() + 1)
         terms[name] = bce * 5 + dice
     terms["card"] = F.binary_cross_entropy_with_logits(out[:, CARD], (y[:, CARD] > 127).float())
+    known = (y[:, CARD_KERNEL, :1, :1] != UNKNOWN).float()   # per image
+    for name, c, weight in (("kernel", CARD_KERNEL, 1.0), ("link", LINK, 3.0), ("partial", PARTIAL, 3.0)):
+        t = (y[:, c] > 127).float()
+        bce = F.binary_cross_entropy_with_logits(out[:, c], t, reduction="none") * (1 + weight * t)
+        terms[name] = (bce * known).sum() / (known.sum() * t.shape[1] * t.shape[2]).clamp(min=1)
     tc = y[:, list(CORNERS)] / 255
     w = 1 + 30 * tc
     terms["corners"] = (F.binary_cross_entropy_with_logits(out[:, list(CORNERS)], tc, reduction="none") * w).mean() * 4
@@ -62,6 +78,15 @@ def augment(x, rng):
     return x.clamp(0, 1)
 
 
+def augment_device(x, gen):
+    """Same augmentation as augment(), random draws made on the device (no host round trip per batch)."""
+    b = x.shape[0]
+    u = torch.rand((3, b, 1, 1, 1), device=x.device, generator=gen, dtype=x.dtype)
+    x = (x - 0.5) * (0.6 + 0.7 * u[0]) + 0.5 + (u[1] * 0.3 - 0.15)
+    x = x + torch.randn(x.shape, device=x.device, generator=gen, dtype=x.dtype) * (u[2] * 0.03)
+    return x.clamp(0, 1)
+
+
 
 def evaluate(model, sets, device):
     """Pixel precision and recall of the word and number kernels, corner peak hit rate, per set."""
@@ -75,7 +100,7 @@ def evaluate(model, sets, device):
                 xb = torch.from_numpy(x[i:i + 32]).to(device).float().unsqueeze(1) / 255
                 yb = torch.from_numpy(y[i:i + 32]).to(device)
                 out = model(xb)
-                keep = yb[..., 8] < 128
+                keep = yb[..., 11] < 128
                 for c, acc in ((WORD, "w"), (NUMBER, "n")):
                     p = (out[:, c] > 0) & keep
                     t = (yb[..., c] > 127) & keep
@@ -91,6 +116,34 @@ def evaluate(model, sets, device):
 
 
 
+@torch.no_grad()
+def initialize(model, weights: dict, x: torch.Tensor):
+    """
+        Starts from exported weights, where each batch normalization is folded
+        into its convolution: the convolutions take the folded weights, and
+        each normalization is set, layer by layer, so that on the batch `x` it
+        gives back the folded bias (identity in training mode on that batch).
+    """
+    for name, block in model.blocks.items():
+        block[0].weight.copy_(torch.from_numpy(weights[name + ".weight"]))
+    model.head.weight.copy_(torch.from_numpy(weights["head.weight"]))
+    model.head.bias.copy_(torch.from_numpy(weights["head.bias"]))
+    model.train()
+    for name, block in model.blocks.items():
+        conv, bn = block[0], block[1]
+        seen = {}
+        hook = conv.register_forward_hook(lambda m, i, o: seen.setdefault("o", o))
+        model(x)
+        hook.remove()
+        o = seen["o"].double()
+        mean, var = o.mean((0, 2, 3)), o.var((0, 2, 3), unbiased=False)
+        bn.weight.copy_(torch.sqrt(var + bn.eps).float())
+        bn.bias.copy_((mean + torch.from_numpy(weights[name + ".bias"]).to(o.device).double()).float())
+        bn.running_mean.copy_(mean.float())
+        bn.running_var.copy_(var.float())
+
+
+
 def main():
     a = argparse.ArgumentParser()
     a.add_argument("out")
@@ -100,13 +153,25 @@ def main():
     a.add_argument("--batch", type=int, default=24)
     a.add_argument("--lr", type=float, default=3e-3)
     a.add_argument("--seed", type=int, default=1)
+    a.add_argument("--shards-in-memory", type=int, default=SHARDS_IN_MEMORY)
+    a.add_argument("--init", help="exported weights (.npz) to start from")
+    a.add_argument("--arch", default="base", help="network variant (haller.detector.ARCHS)")
+    a.add_argument("--fast", action="store_true",
+                   help="GPU-fed loop: shards decompressed ahead by 2 threads, each shard moved once to the device, "
+                        "batches and augmentation drawn on the device, losses summed on the device")
     a = a.parse_args()
+    if a.fast:
+        return main_fast(a)
 
     torch.manual_seed(a.seed)
     rng = np.random.default_rng(a.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = DetNet().to(device)
+    model = DetNet(a.arch).to(device)
     print("parameters", sum(p.numel() for p in model.parameters()), flush=True)
+    if a.init:
+        x, _ = load(a.shards[0])
+        initialize(model, dict(np.load(a.init)), torch.from_numpy(x[:96]).to(device).float().unsqueeze(1) / 255)
+        del x
     val = {}
     for v in a.val:
         x, y = load(v)
@@ -120,8 +185,8 @@ def main():
     for epoch in range(1, a.epochs + 1):
         order = rng.permutation(len(a.shards))
         sums, n = {}, 0
-        for g in range(0, len(order), SHARDS_IN_MEMORY):
-            parts = [load(a.shards[k]) for k in order[g:g + SHARDS_IN_MEMORY]]
+        for g in range(0, len(order), a.shards_in_memory):
+            parts = [load(a.shards[k]) for k in order[g:g + a.shards_in_memory]]
             x = np.concatenate([p[0] for p in parts])
             y = np.concatenate([p[1] for p in parts])
             del parts
@@ -150,6 +215,69 @@ def main():
         np.savez(a.out.replace(".npz", f"_e{epoch}.npz"), **weights)
         np.savez(a.out, **weights)
 
+
+
+def main_fast(a):
+    """Same model, losses, optimizer and schedule as main(); only the feeding of the GPU changes."""
+    from concurrent.futures import ThreadPoolExecutor
+    torch.manual_seed(a.seed)
+    torch.backends.cudnn.benchmark = True
+    rng = np.random.default_rng(a.seed)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    gen = torch.Generator(device=device)
+    gen.manual_seed(a.seed)
+    model = DetNet(a.arch).to(device)
+    print("parameters", sum(p.numel() for p in model.parameters()), flush=True)
+    if a.init:
+        x, _ = load(a.shards[0])
+        initialize(model, dict(np.load(a.init)), torch.from_numpy(x[:96]).to(device).float().unsqueeze(1) / 255)
+        del x
+    val = {}
+    for v in a.val:
+        x, y = load(v)
+        val[v.split("/")[-1]] = (x[:600], y[:600])
+    sizes = [len(json.loads(str(np.load(s)["meta"]))) for s in a.shards]
+    steps = a.epochs * sum(sizes) // a.batch
+    opt = torch.optim.AdamW(model.parameters(), lr=a.lr, weight_decay=1e-4)
+    sched = torch.optim.lr_scheduler.OneCycleLR(opt, a.lr, total_steps=steps + 10, pct_start=0.05)
+    t0 = time.time()
+    pool = ThreadPoolExecutor(2)
+    for epoch in range(1, a.epochs + 1):
+        order = rng.permutation(len(a.shards))
+        futs = [pool.submit(load, a.shards[k]) for k in order[:2]]
+        sums, n = {}, 0
+        for j in range(len(order)):
+            x, y = futs[j].result()
+            if j + 2 < len(order):
+                futs.append(pool.submit(load, a.shards[order[j + 2]]))
+            futs[j] = None
+            xg = torch.from_numpy(x).to(device, non_blocking=True)
+            yg = torch.from_numpy(y).to(device, non_blocking=True)
+            del x, y
+            perm = torch.randperm(len(xg), device=device, generator=gen)
+            for i in range(0, len(perm) - a.batch + 1, a.batch):
+                idx = perm[i:i + a.batch]
+                xb = xg[idx].float().unsqueeze(1) / 255
+                yb = yg[idx]
+                with torch.autocast(device, dtype=torch.bfloat16, enabled=device == "cuda"):
+                    out = model(augment_device(xb, gen))
+                terms = losses(out.float(), yb)
+                loss = sum(terms.values())
+                opt.zero_grad(set_to_none=True)
+                loss.backward()
+                opt.step()
+                sched.step()
+                for k, v in terms.items():
+                    sums[k] = sums.get(k, 0) + v.detach()
+                n += 1
+            del xg, yg
+        res = evaluate(model, val, device)
+        print(f"epoch {epoch}/{a.epochs} " + " ".join(f"{k} {float(v) / n:.4f}" for k, v in sums.items())
+              + f" {time.time() - t0:.0f} s " + json.dumps({k: {m: round(u, 4) for m, u in r.items()}
+                                                             for k, r in res.items()}), flush=True)
+        weights = model.export()
+        np.savez(a.out.replace(".npz", f"_e{epoch}.npz"), **weights)
+        np.savez(a.out, **weights)
 
 
 if __name__ == "__main__":
