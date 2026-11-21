@@ -1,0 +1,4 @@
+parameters 163989
+epoch 1/3 loss 1.0696 words: simulated 95.50 % real 0.00 % 335 s
+epoch 2/3 loss 0.9125 words: simulated 91.00 % real 0.00 % 864 s
+epoch 3/3 loss 0.9424 words: simulated 93.38 % real 0.00 % 1473 s

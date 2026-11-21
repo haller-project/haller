@@ -30,6 +30,14 @@ words, then the BIP39 checksum chooses the seed. Weights are quantized to
 |---|---|---|---|
 | `haller-1-capitals.npz` | capitals | reads every photo | `2e9275f1acd0d347437e856160430e96a283ec484a48ab96a2ea1ca91531fe14` |
 | `haller-1-lowercase.npz` | lowercase and cursive | reads again the photos whose seed is not valid, alone and blended with the capitals expert | `5d340b354ced032992cb474f03bcc0b063f24ee8e1446d2953203b778652e509` |
+| `haller-1-detector.npz` | word detector | finds the words, their numbers and the card when the page rules find no valid seed | `bcda59a220e52979139f44a634a0946dd9d4fe72cd4b246ee23edc6437964aa4` |
+| `haller-1-fingerprint.npz` | fingerprint | reads the master key fingerprint written under the words; a seed is verified only when it matches | `b92cca552dc0a718d309a98b3e5f7ed6f20ee0be32f92aec8df1804d809de454` |
+
+The fingerprint expert has the architecture of the word experts, fine-tuned
+from the capitals expert on fingerprint lines
+([recipe](recipes/haller-1-fingerprint/README.md)); the detector is described
+in [Word detector](#word-detector) and [`MODEL_CARD.md`](MODEL_CARD.md). Each
+file has an exact recipe in `recipes/` (data, float model, quantization).
 
 **Intended use.** Reading BIP39 seeds written by hand on an official
 SeedSigner card or a free list of 12 to 24 words, on an offline device, with a
@@ -133,11 +141,15 @@ Linux x86-64, Python 3.10 or later, `make` and a C compiler (the C library of
 SeedSigner is built on first use), an NVIDIA GPU for training. The training
 and quantization of Haller-1 used the versions pinned in `requirements-lock.txt`;
 its data were generated with the versions given in
-[`recipes/haller-1`](recipes/haller-1/README.md).
+[`recipes/haller-1`](recipes/haller-1/README.md),
+[`recipes/haller-1-detector`](recipes/haller-1-detector/README.md) and
+[`recipes/haller-1-fingerprint`](recipes/haller-1-fingerprint/README.md),
+which are not the same for every model.
 
 ```bash
 # SeedSigner with the handwriting reader: its preprocessing and C library are
-# used here. Haller-1 ships in commit 6126e85 of the handwritten-seed branch.
+# used here. The handwritten-seed branch ships the four Haller-1 files of the
+# weights table above (same SHA-256).
 git clone -b handwritten-seed https://github.com/haller-project/seedsigner-haller ../seedsigner
 export PYTHONPATH=$PWD/../seedsigner/src
 
@@ -196,19 +208,30 @@ that cannot be regenerated and the content digests of every file.
 - **Quantization is deterministic**: the published weights are obtained
   exactly (with `--ranges` on any processor) from the float models
   `recipes/haller-1/data/haller-1-capitals-float.npz` and
-  `haller-1-lowercase-float.npz`.
+  `haller-1-lowercase-float.npz`, and those of the detector and of the
+  fingerprint expert from theirs
+  ([`recipes/haller-1-detector`](recipes/haller-1-detector/README.md),
+  [`recipes/haller-1-fingerprint`](recipes/haller-1-fingerprint/README.md)).
 - **Training** of Haller-1 is not bit-reproducible: it used
   `torch.backends.cudnn.benchmark` and the CUDA CTC loss, so two runs with the
   same seed differ. A retrained model reaches the same level, not the same
   weights. `haller.train --deterministic` makes new runs bit-identical on the
   same hardware and software.
-- **The selection of the epoch** uses only the simulated strips of
-  `EVAL.npz`. They are drawn with EMNIST test letters, so they are not stored
-  in the repository: `recipes/haller-1/evalsim/regenerate.sh` downloads the
-  official EMNIST archive and writes them to
+- **The epoch kept** is the last one: `haller.train` writes the last epoch
+  by default (`--select best` keeps the epoch with the best simulated score
+  instead). Both Haller-1 word experts were trained with the best-epoch
+  selection, which chose their last epoch; the fingerprint expert is epoch 1
+  of a longer schedule (`--stop-after`). `--eval` is still required: every
+  epoch is scored on the simulated strips of `EVAL.npz`. They are drawn with
+  EMNIST test letters, so they are not stored in the repository:
+  `recipes/haller-1/evalsim/regenerate.sh` downloads the official EMNIST
+  archive and writes them to
   `recipes/haller-1/data/haller-1-eval-simulated.npz`, identical to those of
-  Haller-1 (content digest checked). The 288 strips of real photos (a test
-  set) are not published.
+  Haller-1 (content digest checked). This file has no real strips (its
+  `reel` field is always false) and replaces `EVAL.npz` in every command;
+  any file of strips with `x`, `w` and `y` can be given instead, with or
+  without `reel`. The 288 strips of real photos (a test set) are not
+  published.
 - **Generated handwriting** (Emuru) and the vision-model checks are not
   bit-reproducible (GPU sampling, served model): the strips used by the
   lowercase expert are published in `recipes/haller-1/data`.
@@ -225,8 +248,8 @@ done; wait
 # 2. GNHK training split: 4 random crops per word, seed 1
 python -m haller.gnhk gnhk_train.npz GNHK/train 4 1
 
-# 3. Training: 8 epochs, best epoch on the simulated evaluation strips
-#    (written by recipes/haller-1/evalsim/regenerate.sh)
+# 3. Training: 8 epochs, last epoch kept (for Haller-1 also the best on the
+#    simulated evaluation strips, written by recipes/haller-1/evalsim/regenerate.sh)
 python -m haller.train capitals.npz s{1..16}.npz gnhk_train.npz \
     --eval recipes/haller-1/data/haller-1-eval-simulated.npz --epochs 8
 
@@ -240,8 +263,13 @@ place); the current `gnhk.py` gives different, cleaner GNHK samples.
 
 `train` also writes `capitals.json` (channels, epoch, scores). Other options:
 `--channels C1 C2 C3`, `--hidden`, `--batch` (256), `--lr` (2e-3), `--seed`,
-`--val VAL.npz` (second validation set: the best epoch maximizes the mean of
-the simulated EVAL score and of this one), `--keep-epochs`, `--eval-processes`
+`--val VAL.npz` (second validation set, scored at every epoch),
+`--select last|best` (weights written to the output: the last epoch, by
+default, or the best one on the simulated EVAL score, with `--val` on the mean
+of both scores), `--stop-after N` (stop after epoch N, the learning-rate
+schedule still spanning `--epochs`), `--init WEIGHTS.npz` (start from a float
+model written by `train`), `--fast` (shards cached and fed to the GPU by a
+thread), `--keep-epochs`, `--eval-processes`
 (processes of the evaluation by the C library, 1 by default), `--deterministic`
 (bit-identical runs: deterministic GPU kernels, CTC loss on the CPU).
 Quantization is deterministic: the same inputs give the same file on a given
@@ -296,8 +324,9 @@ with `ctypes`. It is used by:
 - `haller.evaluate`: share of strips read correctly by quantized weights
   (`python -m haller.evaluate WEIGHTS.npz STRIPS.npz [--by reel] [--processes N]`);
 - `haller.train`: after each epoch, the model is quantized (calibration on
-  3,000 words of the first shard) and evaluated by the C library; the best
-  epoch is chosen on these scores, as the device will compute them;
+  3,000 words of the first shard) and evaluated by the C library, as the
+  device will compute it; with `--select best`, the epoch is chosen on these
+  scores;
 - `haller.quantize` and `haller.vectors`: reference vectors.
 
 The float model is computed by PyTorch only (`haller.model.folded_forward`,
@@ -402,7 +431,7 @@ python -m haller.emuru emuru_c.npz GNHK/train emuru_raw_c 21 --bip39 data/bip39_
 #    recipes/haller-1/data/emuru_train.npz)
 python -m haller.train lowercase.npz s{1..24}.npz c{1..8}.npz gnhk_f.npz gnhk_f.npz \
     emuru_exact.npz emuru_exact.npz emuru_c31.npz emuru_c32.npz emuru_c33.npz \
-    --eval recipes/haller-1/data/haller-1-eval-simulated.npz --val val.npz --keep-epochs --epochs 10
+    --eval recipes/haller-1/data/haller-1-eval-simulated.npz --val val.npz --keep-epochs --epochs 10 --select best
 python -m haller.quantize lowercase.npz s1.npz haller-1-lowercase.npz --count 3000 --seed 1
 ```
 
@@ -434,8 +463,8 @@ page reader of the time (`recipes/haller-1/evalsim/cut.py`), with their BIP39 wo
 simulated photos and 288 from real photos (field `reel`, boolean). The metric is
 the share of strips whose most probable BIP39 word is correct; since Haller-1
 it is computed on the quantized model by SeedSigner's C library
-(`haller.evaluate`; the table below was measured on the float models). The best epoch is selected on simulated strips
-only; real strips are a test set. The simulated strips are regenerated from
+(`haller.evaluate`; the table below was measured on the float models). The epochs of these models were selected
+on simulated strips only (`--select best`); real strips are a test set. The simulated strips are regenerated from
 the official EMNIST archive by `recipes/haller-1/evalsim/regenerate.sh`
 (`recipes/haller-1/data/haller-1-eval-simulated.npz`); the real ones are not
 published.

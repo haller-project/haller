@@ -5,7 +5,7 @@
 #
 #   recipes/haller-1/evalsim/regenerate.sh [WORK_DIR] [PROCESSES]
 #
-# Run from the repository root with numpy and Pillow < 13 installed. WORK_DIR
+# Run from the repository root with numpy 2.x and Pillow < 13 installed. WORK_DIR
 # (default: evalsim-work) receives the EMNIST archive (562 MB, downloaded from
 # NIST unless already present), the 800 photos (about 400 MB) and the strips
 # before they are copied into recipes/haller-1/data/.
@@ -28,13 +28,17 @@ ZIP_SHA256=fb9bb67e33772a9cc0b895e4ecf36d2cf35be8b709693c3564cea2a019fcda8e
 PY=${PYTHON:-python3}
 
 test -f haller/pages.py || { echo "run from the repository root" >&2; exit 1; }
-# Pillow 13 changed Image.resize (bilinear): 6 strips differ by one gray level.
-# The photos are the same with every tested version; the strips need Pillow < 13
-# (tested: 10.4, 11.3, 12.0, 12.1, 12.2), for instance
-#   uv venv -p 3.12 venv-evalsim && uv pip install -p venv-evalsim/bin/python numpy pillow==12.2.0
+# Versions. The photos need numpy 2.x: numpy 1.26 draws other random values
+# and 797 of the 800 photos differ. Pillow 13 changed Image.resize (bilinear):
+# 6 strips differ by one gray level; the strips need Pillow < 13 (tested:
+# 10.4, 11.3, 12.0, 12.1, 12.2). Checked identical with Python 3.12.3,
+# numpy 2.5.5 and Pillow 12.2.0:
+#   uv venv -p 3.12 venv-evalsim && uv pip install -p venv-evalsim/bin/python numpy==2.5.5 pillow==12.2.0
 #   PYTHON=venv-evalsim/bin/python recipes/haller-1/evalsim/regenerate.sh
 $PY -c 'import PIL, sys; sys.exit(int(PIL.__version__.split(".")[0]) >= 13)' || {
     echo "Pillow < 13 is required (see the comment above)" >&2; exit 1; }
+$PY -c 'import numpy, sys; sys.exit(int(numpy.__version__.split(".")[0]) < 2)' || {
+    echo "numpy 2.x is required (see the comment above)" >&2; exit 1; }
 mkdir -p "$WORK"
 
 # 1. EMNIST archive

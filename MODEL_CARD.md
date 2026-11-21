@@ -1,7 +1,7 @@
 # Model card: Haller-1
 
 Haller-1 is the first release of Haller, the handwritten BIP39 word reader of
-the handwritten seed reader of a SeedSigner fork. It is made of three small
+the handwritten seed reader of a SeedSigner fork. It is made of four small
 networks, run offline on the device in 16-bit integer arithmetic by
 SeedSigner's C library.
 
@@ -16,7 +16,7 @@ SeedSigner's C library.
 | Release date | TBD |
 | Status | proof of concept; not proposed upstream to SeedSigner |
 | License of the weights | MIT, with the notices of [`NOTICE.md`](NOTICE.md) |
-| Recipe | [`recipes/haller-1/README.md`](recipes/haller-1/README.md) |
+| Recipe | [`recipes/haller-1`](recipes/haller-1/README.md) (word experts), [`recipes/haller-1-detector`](recipes/haller-1-detector/README.md), [`recipes/haller-1-fingerprint`](recipes/haller-1-fingerprint/README.md) |
 | Contact | issues of this repository |
 
 ## Components
@@ -26,9 +26,10 @@ SeedSigner's C library.
 | `haller-1-capitals.npz` | word reader, capitals expert: reads every photo | 4 convolutional blocks (16/32/64/64 channels) and 2 dilated 1-D convolutions (128), CTC over 37 classes (blank, a-z case-insensitive, 0-9) | 163,557 | word strip, 32 px high, at most 256 px wide | `2e9275f1acd0d347437e856160430e96a283ec484a48ab96a2ea1ca91531fe14` |
 | `haller-1-lowercase.npz` | word reader, lowercase and cursive expert: second reading of the photos whose seed is not valid, alone and blended with the capitals expert | same as above | 163,557 | same | `5d340b354ced032992cb474f03bcc0b063f24ee8e1446d2953203b778652e509` |
 | `haller-1-detector.npz` | word detector: words, line numbers, card area and card corners, used when the page rules of SeedSigner find no valid seed | U-Net of 3x3 convolutions (8-16-32-48-64-64-64-64, decoder 32-32-16-8), 8 output maps at half resolution | 222,864 | photo reduced to 288 x 384, grayscale | `bcda59a220e52979139f44a634a0946dd9d4fe72cd4b246ee23edc6437964aa4` |
+| `haller-1-fingerprint.npz` | fingerprint reader: reads the line holding the master key fingerprint (8 hexadecimal digits) written under the words; a seed is verified only when this fingerprint matches the one of the words | same as the word readers, fine-tuned from the capitals expert | 163,557 | line strip, as the word readers | `b92cca552dc0a718d309a98b3e5f7ed6f20ee0be32f92aec8df1804d809de454` |
 
 Parameters are the integer weights and biases of the files (batch
-normalization folded). All three use 16-bit weights and 12-bit activations;
+normalization folded). All four use 16-bit weights and 12-bit activations;
 the word readers output log-probabilities every 4 input columns, scored
 against the 2,048 English BIP39 words by a dictionary decoder; the detector
 costs about 300 million multiply-accumulates per photo.

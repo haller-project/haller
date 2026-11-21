@@ -1,6 +1,8 @@
 # Versions of the training and quantization of Haller-1 (pip install -c requirements-lock.txt -e '.[train,names]').
-# Its synthetic data and GNHK crops were generated with Python 3.12, numpy 1.26.4 and Pillow 12.2.0
-# (recipes/haller-1/README.md): Pillow renders the fonts, and another version changes a few samples.
+# The synthetic data and GNHK crops of the word experts and of the detector were generated with Python 3.12,
+# numpy 1.26.4 and Pillow 12.2.0, those of the fingerprint expert with Python 3.12.8, numpy 2.5.5 and Pillow 13.0.0,
+# the simulated evaluation strips need numpy 2.x and Pillow < 13 (recipes/*/README.md): Pillow renders the fonts,
+# and another version changes a few samples.
 numpy==2.5.5
 pillow==13.0.0
 embit==0.8.0

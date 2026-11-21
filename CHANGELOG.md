@@ -20,6 +20,11 @@ First release.
 - Word detector (`haller-1-detector.npz`, 222,864 parameters): words, line
   numbers, card area and corners on simulated cards and lists and GNHK pages;
   used by SeedSigner when its page rules find no valid seed.
+- Fingerprint reader (`haller-1-fingerprint.npz`, architecture of the word
+  readers): the capitals expert fine-tuned on synthetic lines of which half
+  are master key fingerprints (`recipes/haller-1-fingerprint`); SeedSigner
+  reports a seed as verified only when the fingerprint read matches the one
+  of the words.
 - Quantization to 16-bit weights and 12-bit activations; reference vectors
   checked bit for bit by SeedSigner's C library.
 - Recipe of the exact weights in `recipes/haller-1`; the simulated evaluation

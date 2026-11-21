@@ -1,0 +1,18 @@
+# Content digests (../haller-1/digest.py: arrays only, independent of the zip container) of the files of the
+# Haller-1 fingerprint expert, named as the commands of README.md write them, relative to this directory.
+ee968684a0096481c45ec209bb5874c4a279dfdb53dcfee96c93a6eb37746484  h1.npz
+8ac1377c638940b0d2bdafd802022933634efab2d1db1c9633a0c1a8ae344765  h2.npz
+06ba9367f227962703e862dda1f5e63b80be1f105961d2850e9364026e378b3a  h3.npz
+09688b1f11abb19b8de18d571e259ced48782a97628b45a33954bb2434c964c4  h4.npz
+8255b4c12a83605cfc18306e1849c76ca832d79e8be261b4ed6ce461acf5a6c9  h5.npz
+4d16805750b05f33c79f81ba15d641bedadfb7196e9c591a762cfcbdafe064be  h6.npz
+5bbbea72c8aa608f591575fb2442b36e990768681aac02242069f7446c6c9af8  h7.npz
+e525f5e2ca6d16400880659fe97daafad486ce7dda3b40aa878b710f0861684c  h8.npz
+7c3fc581915df2c39bec90eb5f034b4810fcbd35d95e00495cd95a141d577189  val_hex.npz
+19583ad85e6b1db04e5844933569e3540af791e9b8e34b0c7ad83a240f7c629f  val_cur_hex.npz
+1b0b7a41af8240e5f58284ca1473f325684572ad1d8d1eacb20b953813611154  test_hex.npz
+fb83c6f3a0337505a89eb8e94b456e15d7d6c7b133c796c1a096de60bfe0f510  data/haller-1-fingerprint-step1-float.npz
+cb70f73d2567d30a0c85bdc211bb2699182ff66040610ab4bce38dd91c3f25b9  data/haller-1-fingerprint-float.npz
+0c909f14174380a7d59324caecd0afc3c6bf183c596d89311a2f6d458bb02494  haller-1-fingerprint.npz
+# SHA-256 of the quantized weights shipped in SeedSigner (sha256sum -c, from this directory, once uncommented)
+# b92cca552dc0a718d309a98b3e5f7ed6f20ee0be32f92aec8df1804d809de454  haller-1-fingerprint.npz

@@ -212,13 +212,16 @@ The strips are derived from EMNIST, so the repository holds the way to make
 them instead of the file. Run before the commands above that read it:
 
 ```bash
-uv venv -p 3.12 venv-evalsim && uv pip install -p venv-evalsim/bin/python numpy pillow==12.2.0
+uv venv -p 3.12 venv-evalsim && uv pip install -p venv-evalsim/bin/python numpy==2.5.5 pillow==12.2.0
 PYTHON=venv-evalsim/bin/python recipes/haller-1/evalsim/regenerate.sh evalsim-work 4   # work directory, processes
 ```
 
 Pillow 13 changed its bilinear resize: with it, 6 of the 9,156 strips differ
 by one gray level, so the script requires Pillow < 13 (versions 10.4 to 12.2
-give the same strips; the photos are the same with Pillow 13 too).
+give the same strips; the photos are the same with Pillow 13 too). The
+photos need numpy 2.x, and the script checks it: with numpy 1.26.4, 797 of
+the 800 photos differ. Checked identical with Python 3.12.3, numpy 2.5.5 and
+Pillow 12.2.0.
 
 The script downloads the EMNIST archive from NIST (562 MB, SHA-256 checked),
 converts the byclass test split with `haller.emnist`, writes 800 photos with
