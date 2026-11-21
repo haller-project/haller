@@ -30,7 +30,7 @@ words, then the BIP39 checksum chooses the seed. Weights are quantized to
 |---|---|---|---|
 | `haller-1-capitals.npz` | capitals | reads every photo | `2e9275f1acd0d347437e856160430e96a283ec484a48ab96a2ea1ca91531fe14` |
 | `haller-1-lowercase.npz` | lowercase and cursive | reads again the photos whose seed is not valid, alone and blended with the capitals expert | `5d340b354ced032992cb474f03bcc0b063f24ee8e1446d2953203b778652e509` |
-| `haller-1-detector.npz` | word detector | finds the words, their numbers and the card when the page rules find no valid seed | `bcda59a220e52979139f44a634a0946dd9d4fe72cd4b246ee23edc6437964aa4` |
+| `haller-1-detector.npz` | word detector | finds the words, their line numbers and the cards on every photo | `8ddddf19ee0088e8dcfe71ba12377167feeb6a626cd6edb17b0bed3b5f69fc5b` |
 | `haller-1-fingerprint.npz` | fingerprint | reads the master key fingerprint written under the words; a seed is verified only when it matches | `b92cca552dc0a718d309a98b3e5f7ed6f20ee0be32f92aec8df1804d809de454` |
 
 The fingerprint expert has the architecture of the word experts, fine-tuned
@@ -291,25 +291,27 @@ seeds.
 
 ## Word detector
 
-`haller-1-detector.npz` finds the words, the line numbers and the seed card on
-a photo reduced to 288 x 384 pixels; SeedSigner uses it when its page rules
-find no valid seed. `haller/detector.py` holds the network, its quantization
+`haller-1-detector.npz` finds the words, the line numbers and the seed cards on
+a photo reduced to 288 x 384 pixels (11 output maps, see `haller/detector.py`);
+SeedSigner finds the words of every photo with it. `haller/detector.py` holds the network, its quantization
 and the integer reference in numpy, `haller/train_detector.py` the training,
 and `haller/detector_export.py` writes the weights read by the C library and
 their reference vectors:
 
 ```bash
-python -m haller.train_detector detector.npz PAGES_1.npz ... GNHK_PAGES.npz --val PAGES_VAL.npz --epochs 14
-python -m haller.detector detector.npz PAGES_VAL.npz detector_q.npz --count 400
+python -m haller.train_detector detector.npz PAGES_1.npz ... GNHK_PAGES.npz --val PAGES_VAL.npz --epochs 10 --fast
+python -m haller.detector detector.npz PAGES_VAL.npz detector_q.npz --count 400   # or --ranges Q.npz
 python -m haller.detector_export detector_q.npz OUT_DIR --name haller-1-detector
 ```
 
 From the quantized model of Haller-1, `haller.detector_export` writes
 `haller-1-detector.npz` and `haller-1-detector-vectors.json` byte for byte as
-shipped in SeedSigner. The training pages are written by
-`haller.detector_pages` (simulated photos of cards and lists, built on
-`haller.pages`) and `haller.detector_gnhk` (GNHK pages with their word
-boxes); the exact recipe of the detector of Haller-1 is
+shipped in SeedSigner. The training pages of the shipped detector were written
+by a generator and a compositor (simulated handwriting on photos of real blank
+supports and cards) kept frozen in the recipe, and by `haller.detector_gnhk`
+(GNHK pages with their word boxes); `haller.detector_pages` writes simulated
+pages of the earlier 8-map detector (9 target channels, still read by the
+training). The exact recipe of the detector of Haller-1 is
 [`recipes/haller-1-detector/README.md`](recipes/haller-1-detector/README.md).
 
 ## Inference: SeedSigner's C library

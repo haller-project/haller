@@ -17,9 +17,13 @@ First release.
 - Word reader, lowercase and cursive expert (`haller-1-lowercase.npz`, same
   architecture): adds 8 shards of cursive-font words, filtered GNHK words and
   BIP39 words generated in GNHK hands by Emuru.
-- Word detector (`haller-1-detector.npz`, 222,864 parameters): words, line
-  numbers, card area and corners on simulated cards and lists and GNHK pages;
-  used by SeedSigner when its page rules find no valid seed.
+- Word detector (`haller-1-detector.npz`, 223,531 parameters, 11 output
+  maps): words, line numbers, card area, corners and kernels, number-word
+  links and partial words; trained on simulated cards and lists, simulated
+  handwriting composed on photos of blank supports and cards, and GNHK pages
+  (`recipes/haller-1-detector`); SeedSigner finds the words of every photo
+  with it. It replaced an earlier 8-map detector (`bcda59a2…`), whose recipe
+  is in the history of `recipes/haller-1-detector`.
 - Fingerprint reader (`haller-1-fingerprint.npz`, architecture of the word
   readers): the capitals expert fine-tuned on synthetic lines of which half
   are master key fingerprints (`recipes/haller-1-fingerprint`); SeedSigner

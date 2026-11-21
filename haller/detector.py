@@ -249,20 +249,29 @@ def integer_forward(q: dict, image: np.ndarray) -> np.ndarray:
 
 
 def main():
-    """python -m haller.detector MODEL.npz SHARD.npz OUT.npz [--count N]: quantized detector, calibrated on
-    COUNT photos of a training shard."""
+    """python -m haller.detector MODEL.npz SHARD.npz OUT.npz [--count N] [--ranges Q.npz]: quantized detector,
+    calibrated on COUNT photos of a training shard, or with the activation ranges stored in Q.npz."""
     import argparse
     a = argparse.ArgumentParser()
     a.add_argument("model")
     a.add_argument("shard")
     a.add_argument("out")
     a.add_argument("--count", type=int, default=400)
+    a.add_argument("--ranges", help="quantized weights (or any .npz with an `amax` array, in the order of LAYERS) "
+                                    "whose activation ranges are used instead of calibrating them; the calibrated "
+                                    "ranges are still printed for comparison")
     a = a.parse_args()
     d = np.load(a.model)
     weights = {k: d[k] for k in d.files}
     images = np.load(a.shard)["x"][:a.count]
     amax = calibrate(weights, images)
     print("amax", {k: round(v, 3) for k, v in amax.items()})
+    if a.ranges:
+        given = np.load(a.ranges)["amax"].astype(np.float32)
+        calibrated = np.array([amax[n] for n, _, _, _ in LAYERS], np.float32)
+        amax = {n: float(v) for (n, _, _, _), v in zip(LAYERS, given)}
+        print("amax of", a.ranges, {k: round(v, 3) for k, v in amax.items()},
+              "largest difference", float(np.abs(calibrated - given).max()))
     np.savez(a.out, **quantize(weights, amax))
 
 

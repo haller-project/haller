@@ -25,7 +25,7 @@ SeedSigner's C library.
 |---|---|---|---|---|---|
 | `haller-1-capitals.npz` | word reader, capitals expert: reads every photo | 4 convolutional blocks (16/32/64/64 channels) and 2 dilated 1-D convolutions (128), CTC over 37 classes (blank, a-z case-insensitive, 0-9) | 163,557 | word strip, 32 px high, at most 256 px wide | `2e9275f1acd0d347437e856160430e96a283ec484a48ab96a2ea1ca91531fe14` |
 | `haller-1-lowercase.npz` | word reader, lowercase and cursive expert: second reading of the photos whose seed is not valid, alone and blended with the capitals expert | same as above | 163,557 | same | `5d340b354ced032992cb474f03bcc0b063f24ee8e1446d2953203b778652e509` |
-| `haller-1-detector.npz` | word detector: words, line numbers, card area and card corners, used when the page rules of SeedSigner find no valid seed | U-Net of 3x3 convolutions (8-16-32-48-64-64-64-64, decoder 32-32-16-8), 8 output maps at half resolution | 222,864 | photo reduced to 288 x 384, grayscale | `bcda59a220e52979139f44a634a0946dd9d4fe72cd4b246ee23edc6437964aa4` |
+| `haller-1-detector.npz` | word detector: words, line numbers, card area, card corners and kernels, number-word links and partial words, on every photo | U-Net of 3x3 convolutions (8-16-32-48-64-64-64-64, decoder 32-32-16-8), 11 output maps at half resolution | 223,531 | photo reduced to 288 x 384, grayscale | `8ddddf19ee0088e8dcfe71ba12377167feeb6a626cd6edb17b0bed3b5f69fc5b` |
 | `haller-1-fingerprint.npz` | fingerprint reader: reads the line holding the master key fingerprint (8 hexadecimal digits) written under the words; a seed is verified only when this fingerprint matches the one of the words | same as the word readers, fine-tuned from the capitals expert | 163,557 | line strip, as the word readers | `b92cca552dc0a718d309a98b3e5f7ed6f20ee0be32f92aec8df1804d809de454` |
 
 Parameters are the integer weights and biases of the files (batch
@@ -242,8 +242,10 @@ The simulated evaluation strips, derived from EMNIST, are not stored: they
 are regenerated identically from the official EMNIST archive
 (`recipes/haller-1/evalsim/regenerate.sh`).
 The detector recipe, [`recipes/haller-1-detector/README.md`](recipes/haller-1-detector/README.md),
-regenerates its training pages exactly and gives the shipped detector byte for
-byte from its published float model.
+gives the frozen code of its 137 training and validation shards (made before
+the variety audit of the later synthetic data), their content digests and
+the manifest of the photos they were composed on, and gives the shipped
+detector byte for byte from its published float model and activation ranges.
 
 ## Versioning
 
