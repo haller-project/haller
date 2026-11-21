@@ -29,6 +29,8 @@ def main():
     p.add_argument("--cursive", action="store_true",
                    help="lowercase writing (85 %%) in the fonts only, rendered as whole words (cursive joins kept)")
     p.add_argument("--bip39-share", type=float, default=0.6, help="share of English BIP39 words (default 0.6)")
+    p.add_argument("--hex-share", type=float, default=0.0,
+                   help="share of master key fingerprints (8 hexadecimal digits, optional prefix) instead of words")
     p.add_argument("--matched", action="store_true",
                    help="one random stream per sample, words drawn from a separate stream: shards made with the "
                         "same seed and different --bip39-share differ only in their words")
@@ -38,6 +40,7 @@ def main():
     options = dict(font_share=1.0, lower_share=0.85, per_letter_share=0.0) if a.cursive else {}
     vocabulary = Vocabulary.load(a.bip39, a.other)
     vocabulary.bip39_share = a.bip39_share
+    vocabulary.hex_share = a.hex_share
     synth = Synthesizer(vocabulary, list_fonts(a.fonts), EmnistLetters(a.emnist), **options)
     x = np.zeros((a.count, INPUT_HEIGHT, MAX_INPUT_WIDTH), np.uint8)
     widths, labels = np.zeros(a.count, np.int16), []

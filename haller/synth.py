@@ -37,6 +37,7 @@ class Vocabulary:
     bip39: list
     other: list
     bip39_share: float = 0.6
+    hex_share: float = 0.0
 
     @classmethod
     def load(cls, bip39_path: str, other_path: str):
@@ -46,9 +47,29 @@ class Vocabulary:
 
 
     def word(self, rng: np.random.Generator) -> str:
+        if self.hex_share and rng.random() < self.hex_share:
+            return fingerprint_text(rng)
         words = self.bip39 if rng.random() < self.bip39_share else self.other
         return words[rng.integers(len(words))]
 
+
+
+# Words written before a master key fingerprint (the colon is not a class: it
+# reads as a blank)
+FINGERPRINT_PREFIXES = ("", "", "", "", "fp ", "fp: ", "fp:", "xfp ", "xfp: ", "mfp ", "fingerprint ", "fingerprint: ")
+
+
+def fingerprint_text(rng: np.random.Generator) -> str:
+    """A master key fingerprint as written under a seed: 8 hexadecimal digits,
+    sometimes after a prefix, sometimes in two groups of 4."""
+    digits = "".join("0123456789abcdef"[i] for i in rng.integers(16, size=8))
+    if rng.random() < 0.1:
+        digits = digits[:4] + " " + digits[4:]
+    return FINGERPRINT_PREFIXES[rng.integers(len(FINGERPRINT_PREFIXES))] + digits
+
+
+def is_fingerprint_text(text: str) -> bool:
+    return any(c.isdigit() for c in text) and len("".join(c for c in text if c.isalnum())) >= 8
 
 
 def apply_case(word: str, rng: np.random.Generator, lower_share: float = 0.35) -> str:
@@ -235,7 +256,7 @@ class EmnistHand:
                 continue
             glyph = Image.fromarray(g).crop(box)
             low = ch.islower() and ch not in "bdfhklt"
-            h = s * {".": 0.15, "-": 0.1, ")": 0.9, "#": 0.8}.get(ch, 0.62 if low else 1.0)
+            h = s * {".": 0.15, "-": 0.1, ")": 0.9, "#": 0.8, ":": 0.55}.get(ch, 0.62 if low else 1.0)
             h *= 1 + self.jitter * rng.normal(0, 0.06)
             if ch in "gjpqy":
                 h *= 1.4
@@ -261,6 +282,9 @@ class EmnistHand:
             d.line([6, 14, 20, 14], fill=0, width=3)
         elif ch == "#":
             d.text((6, 4), "#", fill=0)
+        elif ch == ":":
+            d.ellipse([11, 8, 16, 13], fill=0)
+            d.ellipse([11, 20, 16, 25], fill=0)
         return np.asarray(g)
 
 
@@ -398,8 +422,11 @@ class Synthesizer:
         word_rng if given, so that shards differing only in vocabulary share the
         same hands and photographs."""
         word_rng = word_rng or rng
-        word = apply_case(self.vocabulary.word(word_rng), rng, self.lower_share)
-        text = line_prefix(rng) + word
+        word = self.vocabulary.word(word_rng)
+        if is_fingerprint_text(word):  # a fingerprint: no line number; upper or lower case as written
+            text = word.upper() if rng.random() < 0.5 else word
+        else:
+            text = line_prefix(rng) + apply_case(word, rng, self.lower_share)
         size = rng.uniform(36, 90)
         hand = self.hand(size, rng)
         strength = rng.uniform(0, 0.06) * size

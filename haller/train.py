@@ -16,6 +16,7 @@ written to OUT.npz.
 import argparse
 import json
 import os
+import threading
 import time
 
 import numpy as np
@@ -55,6 +56,95 @@ def batch(x, w, labels, idx, device, augment):
 
 
 
+def cached_shard(path: str):
+    """
+    The shard decompressed once into PATH.x.npy (ink maps, read as a memory map), PATH.w.npy (widths), PATH.t.npy
+    (labels encoded, padded with 0) and PATH.n.npy (label lengths) next to it, so that later epochs read it
+    without decompressing.
+    """
+    files = [path + suffix for suffix in (".x.npy", ".w.npy", ".t.npy", ".n.npy")]
+    if not all(os.path.exists(f) for f in files):
+        x, w, labels = load_shard(path)
+        codes = [encode(label) for label in labels]
+        t = np.zeros((len(codes), max(len(c) for c in codes)), np.int64)
+        for i, c in enumerate(codes):
+            t[i, :len(c)] = c
+        for f, a in zip(files, (x, w, t, np.array([len(c) for c in codes], np.int64))):
+            np.save(f[:-4] + ".tmp.npy", a)
+            os.replace(f[:-4] + ".tmp.npy", f)
+    return np.load(files[0], mmap_mode="r"), np.load(files[1]), np.load(files[2]), np.load(files[3])
+
+
+
+class ShardFeeder:
+    """
+    Shards copied to the device one at a time (a shard of 50 000 ink maps is 410 MB of uint8): the next one is
+    read and copied by a thread while the current one is trained on.
+    """
+    def __init__(self, paths: list, order, device: str):
+        self.paths, self.order, self.device = paths, list(order), device
+        self.next, self.thread = None, None
+        self._start(0)
+
+    def _load(self, k):
+        x, w, t, n = cached_shard(self.paths[self.order[k]])
+        xs = torch.from_numpy(np.ascontiguousarray(x))
+        pin = self.device != "cpu"
+        if pin:
+            xs = xs.pin_memory()
+        self.next = tuple(a.to(self.device, non_blocking=pin)
+                          for a in (xs, torch.from_numpy(w), torch.from_numpy(t), torch.from_numpy(n)))
+
+    def _start(self, k):
+        if k < len(self.order):
+            self.thread = threading.Thread(target=self._load, args=(k,))
+            self.thread.start()
+
+    def __iter__(self):
+        for k in range(len(self.order)):
+            self.thread.join()
+            shard, self.next = self.next, None
+            self._start(k + 1)
+            yield shard
+
+
+
+def device_batch(x, w, t, n, idx, augment):
+    """batch() on a shard already on the device (ShardFeeder); targets padded with 0, and their lengths."""
+    xb = x[idx].float().div_(255).unsqueeze(1)
+    wb = w[idx]
+    if augment:
+        m, device = len(idx), xb.device
+        sx = torch.empty(m, device=device).uniform_(0.8, 1.2)
+        theta = torch.zeros(m, 2, 3, device=device)
+        theta[:, 0, 0] = 1 / sx
+        theta[:, 0, 2] = 1 / sx - 1
+        theta[:, 1, 1] = 1
+        theta[:, 1, 2] = torch.empty(m, device=device).uniform_(-2, 2) / 16
+        grid = F.affine_grid(theta, xb.shape, align_corners=False)
+        xb = F.grid_sample(xb, grid, align_corners=False)
+        wb = torch.clamp((wb.float() * sx).round().long(), 8, x.shape[2])
+        xb = (xb * torch.empty(m, 1, 1, 1, device=device).uniform_(0.6, 1.2)).clamp_(0, 1)
+    return xb, wb, t[idx], n[idx]
+
+
+
+def load_folded(net, weights: dict):
+    """Starts `net` from exported weights (batch normalization folded in): each convolution takes the folded
+    weights, its batch normalization the identity and the folded bias."""
+    with torch.no_grad():
+        for name in ("b1", "b2", "b3", "b4", "t1", "t2"):
+            conv, bn = getattr(net, name)[0], getattr(net, name)[1]
+            conv.weight.copy_(torch.from_numpy(weights[name + ".weight"]))
+            bn.weight.fill_(1.0)
+            bn.bias.copy_(torch.from_numpy(weights[name + ".bias"]))
+            bn.running_mean.zero_()
+            bn.running_var.fill_(1.0 - bn.eps)
+        net.out.weight.copy_(torch.from_numpy(weights["out.weight"]))
+        net.out.bias.copy_(torch.from_numpy(weights["out.bias"]))
+
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("out")
@@ -70,6 +160,11 @@ def main():
     p.add_argument("--val", help="second validation set (x, w, y): the best epoch maximizes the mean of the "
                                  "simulated EVAL score and of this one")
     p.add_argument("--eval-processes", type=int, default=1, help="processes of the evaluation by the C library")
+    p.add_argument("--fast", action="store_true",
+                   help="shards decompressed once (cached next to them) and copied to the GPU one at a time, the next "
+                        "one prepared by a thread; the evaluation of an epoch runs while the next one trains. Same "
+                        "batches and targets as without it (padded targets: the same CTC loss)")
+    p.add_argument("--init", help="float weights (OUT.npz of a previous training) to start from")
     p.add_argument("--keep-epochs", action="store_true", help="also write the weights of every epoch (OUT_eN.npz)")
     p.add_argument("--deterministic", action="store_true",
                    help="bit-identical runs on the same hardware and software: deterministic GPU kernels, "
@@ -94,6 +189,8 @@ def main():
         va_x, va_w, va_y = va["x"], va["w"].astype(np.int64), [str(y) for y in va["y"]]
 
     net = WordNet(a.channels, a.hidden).to(device)
+    if a.init:
+        load_folded(net, dict(np.load(a.init)))
     print("parameters", sum(p.numel() for p in net.parameters()), flush=True)
     sizes = [len(np.load(s)["w"]) for s in a.shards]
     steps = a.epochs * sum(n // a.batch for n in sizes)
@@ -101,45 +198,81 @@ def main():
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, a.lr, total_steps=steps, pct_start=0.1)
     ctc = nn.CTCLoss(blank=0, zero_infinity=True)
     best, t0 = -1.0, time.time()
-    for epoch in range(a.epochs):
-        loss_sum, n_batches = 0.0, 0
-        for s in rng.permutation(len(a.shards)):
-            x, w, labels = load_shard(a.shards[s])
-            order = rng.permutation(len(labels))
-            for k in range(len(order) // a.batch):
-                idx = np.sort(order[k * a.batch:(k + 1) * a.batch])
-                xb, wb, targets = batch(x, w, labels, idx, device, True)
-                width = min(x.shape[2], (int(wb.max()) + 19) // 4 * 4)
-                lp = net(xb[..., :width])
-                frames = torch.clamp(wb // 4, 1, lp.shape[2])
-                lengths = torch.tensor([len(t) for t in targets], device=ctc_device)
-                loss = ctc(lp.permute(2, 0, 1).to(ctc_device), torch.cat(targets).to(ctc_device),
-                           frames.to(ctc_device), lengths)
-                opt.zero_grad(set_to_none=True)
-                loss.backward()
-                nn.utils.clip_grad_norm_(net.parameters(), 5.0)
-                opt.step()
-                sched.step()
-                loss_sum += loss.item()
-                n_batches += 1
-        weights = net.export()
+    pending = []
+
+    def evaluate_epoch(epoch, weights, loss):
         q = quantize.quantize(weights, quantize.calibrate(weights, calibration))
         n = a.eval_processes
         sim = evaluate.accuracy(q, ev_x, ev_w, ev_y, n, np.nonzero(~ev_real)[0])
         real = evaluate.accuracy(q, ev_x, ev_w, ev_y, n, np.nonzero(ev_real)[0])
         val = evaluate.accuracy(q, va_x, va_w, va_y, n) if a.val else None
-        print(f"epoch {epoch + 1}/{a.epochs} loss {loss_sum / n_batches:.4f} "
+        print(f"epoch {epoch + 1}/{a.epochs} loss {loss:.4f} "
               f"words: simulated {100 * sim:.2f} % real {100 * real:.2f} %"
               + (f" val {100 * val:.2f} %" if a.val else "") + f" {time.time() - t0:.0f} s", flush=True)
+        pending.append((epoch, weights, sim, real, val))
+
+    def keep_best():
+        nonlocal best
+        for epoch, weights, sim, real, val in sorted(pending, key=lambda item: item[0]):
+            score = (sim + val) / 2 if a.val else sim
+            if score >= best:  # selection on simulated photos only; real photos are a test set
+                best = score
+                np.savez(a.out, **weights)
+                json.dump(dict(channels=a.channels, hidden=a.hidden, epoch=epoch + 1, simulated=sim, real=real,
+                               val=val), open(a.out.replace(".npz", ".json"), "w"), indent=1)
+        pending.clear()
+
+    evaluation = None
+    for epoch in range(a.epochs):
+        loss_sum, n_batches = torch.zeros((), device=device), 0
+        order_shards = rng.permutation(len(a.shards))
+        if a.fast:
+            shards = ShardFeeder(a.shards, order_shards, device)
+        else:
+            shards = (load_shard(a.shards[s]) for s in order_shards)
+        for shard in shards:
+            count = len(shard[1]) if a.fast else len(shard[2])
+            order = rng.permutation(count)
+            for k in range(count // a.batch):
+                idx = np.sort(order[k * a.batch:(k + 1) * a.batch])
+                if a.fast:
+                    xb, wb, padded, lengths = device_batch(*shard, torch.from_numpy(idx).to(device), True)
+                    targets_ctc, lengths_ctc = padded.to(ctc_device), lengths.to(ctc_device)
+                    width = min(shard[0].shape[2], (int(wb.max()) + 19) // 4 * 4)
+                else:
+                    x, w, labels = shard
+                    xb, wb, targets = batch(x, w, labels, idx, device, True)
+                    width = min(x.shape[2], (int(wb.max()) + 19) // 4 * 4)
+                    lengths_ctc = torch.tensor([len(t) for t in targets], device=ctc_device)
+                    targets_ctc = torch.cat(targets).to(ctc_device)
+                lp = net(xb[..., :width])
+                frames = torch.clamp(wb // 4, 1, lp.shape[2])
+                loss = ctc(lp.permute(2, 0, 1).to(ctc_device), targets_ctc, frames.to(ctc_device), lengths_ctc)
+                opt.zero_grad(set_to_none=True)
+                loss.backward()
+                nn.utils.clip_grad_norm_(net.parameters(), 5.0)
+                opt.step()
+                sched.step()
+                loss_sum += loss.detach().to(device)
+                n_batches += 1
+            del shard
+        weights = net.export()
         if a.keep_epochs:
             np.savez(a.out.replace(".npz", f"_e{epoch + 1}.npz"), **weights)
-        score = (sim + val) / 2 if a.val else sim
-        if score >= best:  # selection on simulated photos only; real photos are a test set
-            best = score
-            np.savez(a.out, **weights)
-            json.dump(dict(channels=a.channels, hidden=a.hidden, epoch=epoch + 1, simulated=sim, real=real, val=val),
-                      open(a.out.replace(".npz", ".json"), "w"), indent=1)
-
+        loss = float(loss_sum) / n_batches
+        if a.fast:
+            # the C library releases the GIL: the evaluation runs while the next epoch trains
+            if evaluation is not None:
+                evaluation.join()
+                keep_best()
+            evaluation = threading.Thread(target=evaluate_epoch, args=(epoch, weights, loss))
+            evaluation.start()
+        else:
+            evaluate_epoch(epoch, weights, loss)
+            keep_best()
+    if evaluation is not None:
+        evaluation.join()
+        keep_best()
 
 
 if __name__ == "__main__":
