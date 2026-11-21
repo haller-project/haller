@@ -1,0 +1,252 @@
+[
+ {
+  "id": "seedsigner_mnemonic_12w",
+  "vendor": "SeedSigner",
+  "license": "MIT (SeedSigner/seedsigner LICENSE.md)",
+  "source_url": "https://raw.githubusercontent.com/SeedSigner/seedsigner/dev/docs/seed_qr/printable_templates/mnemonic_12words_wfingerprint.pdf",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/seedsigner_mnemonic_12w.png",
+  "sha256": "578f4bd2ed839865393f3433345a0028a4a177a23c04eecb607ee2a266e1fbf2"
+ },
+ {
+  "id": "seedsigner_mnemonic_24w",
+  "vendor": "SeedSigner",
+  "license": "MIT (SeedSigner/seedsigner LICENSE.md)",
+  "source_url": "https://raw.githubusercontent.com/SeedSigner/seedsigner/dev/docs/seed_qr/printable_templates/mnemonic_24word_wfingerprint.pdf",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/seedsigner_mnemonic_24w.png",
+  "sha256": "57e3fe5f29725e8b4cc159ea22845638218ddfc87934c287ecaf2caa152aeba9"
+ },
+ {
+  "id": "trezor_seed24_inside",
+  "vendor": "Trezor",
+  "license": "unknown / copyright vendor (SatoshiLabs)",
+  "source_url": "https://static.trezor.io/2/19/146/147/SEED_24_DIY_a98497df0a.pdf",
+  "raw_page": 2,
+  "retrieved": "2026-11-20",
+  "png": "png/trezor_seed24_inside.png",
+  "sha256": "787400d91bfb5b79dd6e180648f98819b595b83da33a8ff41893003ae6f0d4da"
+ },
+ {
+  "id": "coldcard_backup_v3",
+  "vendor": "Coldcard (Coinkite)",
+  "license": "unknown / copyright vendor (Coinkite: 'All rights reserved')",
+  "source_url": "https://coldcard.com/docs/static/pdf/coldcard-backup-card-v3.pdf",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/coldcard_backup_v3.png",
+  "sha256": "3a1cb0e6b1b81ac2f39669fb356be0879c2edfa238eac201a07bee0722146075"
+ },
+ {
+  "id": "coldcard_backup_v2",
+  "vendor": "Coldcard (Coinkite)",
+  "license": "unknown / copyright vendor (Coinkite: 'All rights reserved')",
+  "source_url": "https://coldcard.com/docs/static/pdf/coldcard-backup-card-v2.pdf",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/coldcard_backup_v2.png",
+  "sha256": "c76109c01a7c83b11047196cf9f399ee6ae8a9b14a1d8f5a9e8711d857306327"
+ },
+ {
+  "id": "bitcoinkeys_worksheet24",
+  "vendor": "Community (bitcoinkeys.guide)",
+  "license": "unknown / copyright vendor (bitcoinkeys.guide)",
+  "source_url": "https://bitcoinkeys.guide/roll-24-word-seed.pdf",
+  "raw_page": 2,
+  "retrieved": "2026-11-20",
+  "png": "png/bitcoinkeys_worksheet24.png",
+  "sha256": "b2ea7ce2b12e4460858f70945f58cfc395eba866db3f01b393fdc779cf78ad7b"
+ },
+ {
+  "id": "coldcard_microsd_password",
+  "vendor": "Coldcard (Coinkite)",
+  "license": "unknown / copyright vendor (Coinkite: 'All rights reserved')",
+  "source_url": "https://coldcard.com/docs/static/pdf/microsd-password-v1.pdf",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/coldcard_microsd_password.png",
+  "sha256": "9d3e084b48bd1ec44e1b2b32ffc133351369f424ad5383ee0e272e3ed47b276a"
+ },
+ {
+  "id": "trezor_legacy_recovery_card",
+  "vendor": "Trezor",
+  "license": "unknown / copyright vendor (SatoshiLabs)",
+  "source_url": "https://doc.satoshilabs.com/trezor-user/_downloads/recovery_card.pdf",
+  "raw_page": 2,
+  "retrieved": "2026-11-20",
+  "png": "png/trezor_legacy_recovery_card.png",
+  "sha256": "7abcdd019a2792eb6f5aededaebecb4479172ddabc1cfc9f21adc3e0e1bf065e"
+ },
+ {
+  "id": "foundation_passport_card",
+  "vendor": "Foundation (Passport)",
+  "license": "unknown / copyright vendor",
+  "source_url": "https://docs.foundation.xyz/images/securitycard.pdf",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/foundation_passport_card.png",
+  "sha256": "714eaf57db6acc86b6bc10b3d470af8471f13493568e2aa41c12bc87ebf5c73f"
+ },
+ {
+  "id": "trezor_seed20_inside",
+  "vendor": "Trezor",
+  "license": "unknown / copyright vendor (SatoshiLabs)",
+  "source_url": "https://static.trezor.io/2/19/146/147/SEED_20_DIY_0954e51a5d.pdf",
+  "raw_page": 2,
+  "retrieved": "2026-11-20",
+  "png": "png/trezor_seed20_inside.png",
+  "sha256": "a003cb32035f55e45e6b3184cace72043bc05bd9a35a4677624923bd48530270"
+ },
+ {
+  "id": "keybackup_seedwords",
+  "vendor": "Community (keybackup.org)",
+  "license": "MIT (btckeybackup/keybackup.org repo)",
+  "source_url": "https://raw.githubusercontent.com/btckeybackup/keybackup.org/main/public/sheets/sheet-2.png",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/keybackup_seedwords.png",
+  "sha256": "57fe4f8d120d5c382d2b8963eaf112217166bbf5acf09d6e95a7596445b4d039"
+ },
+ {
+  "id": "bitcoinerguide_recovery_sheet",
+  "vendor": "Community (bitcoiner.guide)",
+  "license": "unknown / copyright vendor (bitcoiner.guide)",
+  "source_url": "https://bitcoiner.guide/backup.pdf",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/bitcoinerguide_recovery_sheet.png",
+  "sha256": "5c44294c44d08c6b6555db0bfb65795ec793e3c8766ff6e3df05bdf36aa9fe4e"
+ },
+ {
+  "id": "mnemonicbackup_12w_btc",
+  "vendor": "Community (0xDigitalOiI/Mnemonic-Seed-Bakcup)",
+  "license": "none stated ('100% free, without license' in README of 0xDigitalOiI/Mnemonic-Seed-Bakcup)",
+  "source_url": "https://raw.githubusercontent.com/0xDigitalOiI/Mnemonic-Seed-Bakcup/master/Templates-PDF/12-word-seed-btc.pdf",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/mnemonicbackup_12w_btc.png",
+  "sha256": "3c7a06f806515da854351cb1fec212ac9e8f344d25eadef40d5738017a125ce3"
+ },
+ {
+  "id": "mnemonicbackup_24w_btc",
+  "vendor": "Community (0xDigitalOiI/Mnemonic-Seed-Bakcup)",
+  "license": "none stated ('100% free, without license' in README of 0xDigitalOiI/Mnemonic-Seed-Bakcup)",
+  "source_url": "https://raw.githubusercontent.com/0xDigitalOiI/Mnemonic-Seed-Bakcup/master/Templates-PDF/24-word-seed-btc.pdf",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/mnemonicbackup_24w_btc.png",
+  "sha256": "3a74d2fb1e36eb4e8c8413d6c13571126508aba3cf8a8f1da40cceff3270a299"
+ },
+ {
+  "id": "mnemonicbackup_shamir33",
+  "vendor": "Community (0xDigitalOiI/Mnemonic-Seed-Bakcup)",
+  "license": "none stated ('100% free, without license' in README of 0xDigitalOiI/Mnemonic-Seed-Bakcup)",
+  "source_url": "https://raw.githubusercontent.com/0xDigitalOiI/Mnemonic-Seed-Bakcup/master/Templates-PDF/shamir-seed-general.pdf",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/mnemonicbackup_shamir33.png",
+  "sha256": "f3d9c9338285d708a7ed82878f058dc1f7593f0b93b14e3f08e62a125aa6054c"
+ },
+ {
+  "id": "padawans_seed_backup",
+  "vendor": "Community (Bitcoin Padawans)",
+  "license": "MIT (Bitcoin-Padawans/backup-seed-template LICENSE)",
+  "source_url": "https://raw.githubusercontent.com/Bitcoin-Padawans/backup-seed-template/master/index.html",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/padawans_seed_backup.png",
+  "sha256": "72ada8b6b013dac0db69d79886e20779606c474aeec0105832aaf7cfcfbdec60"
+ },
+ {
+  "id": "psst_worksheet_secret",
+  "vendor": "Community (psst, Sjlver)",
+  "license": "MIT (Sjlver/psst LICENSE)",
+  "source_url": "https://raw.githubusercontent.com/Sjlver/psst/main/docs/psst-worksheet.pdf",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/psst_worksheet_secret.png",
+  "sha256": "f84bf0a45a6412efa092ca9a6239710c069c8f07a83654017924004d610cfe40"
+ },
+ {
+  "id": "psst_worksheet_share",
+  "vendor": "Community (psst, Sjlver)",
+  "license": "MIT (Sjlver/psst LICENSE)",
+  "source_url": "https://raw.githubusercontent.com/Sjlver/psst/main/docs/psst-worksheet.pdf",
+  "raw_page": 2,
+  "retrieved": "2026-11-20",
+  "png": "png/psst_worksheet_share.png",
+  "sha256": "59842570c1df91fea02bef4d60aa50b3a1a26a4cd5d63c6efc320b5c96ca7016"
+ },
+ {
+  "id": "penlock_worksheet24_front",
+  "vendor": "Community (Penlock)",
+  "license": "MIT (penlock-io/v1 LICENSE; v1-en repo has no LICENSE file)",
+  "source_url": "https://raw.githubusercontent.com/penlock-io/v1-en/master/worksheet-24.pdf",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/penlock_worksheet24_front.png",
+  "sha256": "68e0559c72f447b70e8511e96b83103bbe400adf69cefbde5fee0e66a26fea46"
+ },
+ {
+  "id": "rapidtoolset_18w_grid",
+  "vendor": "Community (rapidtoolset.com generator)",
+  "license": "unknown (rapidtoolset.com generator output, site ToS)",
+  "source_url": "https://rapidtoolset.com/en/tool/bitcoin-voucher-generator",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/rapidtoolset_18w_grid.png",
+  "sha256": "967b34b4410f9dc6d274bf85fe69995636028a368c7833af0fedd7daee9fb1e1"
+ },
+ {
+  "id": "rapidtoolset_24w_list",
+  "vendor": "Community (rapidtoolset.com generator)",
+  "license": "unknown (rapidtoolset.com generator output, site ToS)",
+  "source_url": "https://rapidtoolset.com/en/tool/bitcoin-voucher-generator",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/rapidtoolset_24w_list.png",
+  "sha256": "3c764171bc0ac64b96b0cb28b74bcd66e9112810e2f0353efcaa6dd54f6d4ae2"
+ },
+ {
+  "id": "trezor_one_card_2017",
+  "vendor": "Trezor",
+  "license": "no explicit license, vendor property (SatoshiLabs)",
+  "source_url": "https://static.trezor.io/2/19/146/147/Recovery_seed_cards_2_eca2aebf2e.png",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/trezor_one_card_2017.png",
+  "sha256": "0d3de64f555dfaf62d0daf84ef276eff4cee91da8d2611bb787d8a966165f8a6"
+ },
+ {
+  "id": "ledger_nanos_my_recovery_phrase",
+  "vendor": "Ledger",
+  "license": "no explicit license, vendor property",
+  "source_url": "https://support.ledger.com/hc/en-us/article_attachments/360009323553/User_manual_-_Ledger_Nano_S.pdf",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/ledger_nanos_my_recovery_phrase.png",
+  "sha256": "cd885be3080ea12997b1c96ff1cc9f602df64d792e68f6d212b727d11979b1d8"
+ },
+ {
+  "id": "ledger_nanox_recovery_sheet",
+  "vendor": "Ledger",
+  "license": "no explicit license, vendor property",
+  "source_url": "https://asset.conrad.com/media10/add/160267/c1/-/en/002986338ML00/upute-za-rukovanje-2986338-ledger-nano-x-lnx-deon-hardver-novcanik-1-st.pdf",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/ledger_nanox_recovery_sheet.png",
+  "sha256": "e76563513b4f69a52e2d11c61da4d8a4197451e2fca521ea2342a4ae36f7fe7f"
+ },
+ {
+  "id": "onekey_recovery_sheet",
+  "vendor": "OneKey",
+  "license": "no explicit license, vendor property",
+  "source_url": "https://help.onekey.so/en/articles/11461083-authenticate-onekey-pro",
+  "raw_page": 1,
+  "retrieved": "2026-11-20",
+  "png": "png/onekey_recovery_sheet.png",
+  "sha256": "fee8c2e919d409c5a8954707e540d5b82fd77035a8a18baea40d2d511e01b876"
+ }
+]

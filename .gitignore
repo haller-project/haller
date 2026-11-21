@@ -8,3 +8,5 @@ runs/
 recipes/haller-1/data/haller-1-eval-simulated.npz
 evalsim-work/
 dist/
+# inputs of the frozen detector generator that are not redistributed (recipes/haller-1-detector/README.md)
+recipes/haller-1-detector/gen/data/modeles_cartes/png/
