@@ -179,16 +179,36 @@ def calibrate(weights: dict, images: np.ndarray, percentile: float = 99.99) -> d
 
 
 
+def calibrate_channels(weights: dict, images: np.ndarray, percentile: float = 99.99) -> dict:
+    """a_max of every output channel of every layer over a batch of photos (N, 384, 288) uint8: one array per layer,
+    at least 1e-3 (the per-channel quantization of the detector shipped on 21/11/2026)."""
+    w = {k: torch.from_numpy(v) for k, v in weights.items() if k != "layers"}
+    acts = {}
+    with torch.no_grad():
+        for i in range(0, len(images), 16):
+            t = {}
+            folded_forward(w, torch.from_numpy(images[i:i + 16, None].astype(np.float32) / 255), t)
+            for name, _, _, _ in LAYERS:
+                v = t[name].permute(1, 0, 2, 3).reshape(t[name].shape[1], -1).numpy()
+                sel = np.random.default_rng(i).choice(v.shape[1], min(v.shape[1], 50000))
+                acts.setdefault(name, []).append(v[:, sel])
+    return {k: np.maximum(np.percentile(np.concatenate(v, 1), percentile, axis=1), 1e-3) for k, v in acts.items()}
+
+
+
 def quantize(weights: dict, amax: dict) -> dict:
     """Integer model: <layer>.weight (O, 3, 3, C) int16, .bias int32, .mul int32 (16 fractional bits);
-    head.weight int16, head.scale and head.bias float32; amax per layer."""
+    head.weight int16, head.scale and head.bias float32; amax per layer (its largest channel when the ranges are
+    given per channel). `amax[layer]`: a number (one output scale per layer) or an array of one range per output
+    channel (one output scale per channel; the next layer takes the scale of each of its input channels in its
+    weights, so the integer format and the C library are the same)."""
     scale = {"x": INPUT_SCALE}
     out = {}
 
     def quant_conv(name, inputs):
         w = weights[name + ".weight"].astype(np.float64)
         b = weights[name + ".bias"].astype(np.float64)
-        s_in = np.concatenate([np.full(weights_in_channels(i), scale[i.split(":")[-1]]) for i in inputs])
+        s_in = np.concatenate([np.broadcast_to(scale[i.split(":")[-1]], (weights_in_channels(i),)) for i in inputs])
         w_eff = w / s_in[None, :, None, None]
         o = w.shape[0]
         sw = AMAX / np.maximum(np.abs(w_eff.reshape(o, -1)).max(1), 1e-12)
@@ -204,14 +224,15 @@ def quantize(weights: dict, amax: dict) -> dict:
 
     for name, inputs, _, _ in LAYERS:
         sw, b = quant_conv(name, inputs)
-        s_out = AMAX / max(amax[name], 1e-6)
+        r = amax[name]
+        s_out = AMAX / (np.maximum(r, 1e-6) if isinstance(r, np.ndarray) else max(r, 1e-6))
         out[name + ".bias"] = np.round(b * sw).astype(np.int32)
         out[name + ".mul"] = np.round(s_out / sw * (1 << SHIFT)).astype(np.int32)
         scale[name] = s_out
     sw, b = quant_conv("head", (HEAD_INPUT,))
     out["head.scale"] = (1.0 / sw).astype(np.float32)
     out["head.bias"] = b.astype(np.float32)
-    out["amax"] = np.array([amax[n] for n, _, _, _ in LAYERS], np.float32)
+    out["amax"] = np.array([np.max(amax[n]) for n, _, _, _ in LAYERS], np.float32)
     out["layers"] = weights["layers"]
     return {k: np.ascontiguousarray(v) for k, v in out.items()}
 
@@ -249,31 +270,47 @@ def integer_forward(q: dict, image: np.ndarray) -> np.ndarray:
 
 
 def main():
-    """python -m haller.detector MODEL.npz SHARD.npz OUT.npz [--count N] [--ranges Q.npz]: quantized detector,
-    calibrated on COUNT photos of a training shard, or with the activation ranges stored in Q.npz."""
+    """python -m haller.detector MODEL.npz SHARD.npz OUT.npz [--count N] [--per-channel] [--ranges R.npz]
+    [--save-ranges R.npz]: quantized detector, calibrated on COUNT photos of a training shard, or with given
+    activation ranges."""
     import argparse
     a = argparse.ArgumentParser()
     a.add_argument("model")
     a.add_argument("shard")
     a.add_argument("out")
     a.add_argument("--count", type=int, default=400)
-    a.add_argument("--ranges", help="quantized weights (or any .npz with an `amax` array, in the order of LAYERS) "
-                                    "whose activation ranges are used instead of calibrating them; the calibrated "
-                                    "ranges are still printed for comparison")
+    a.add_argument("--per-channel", action="store_true",
+                   help="one activation range per output channel instead of one per layer")
+    a.add_argument("--ranges", help="activation ranges used instead of calibrating them: per layer, any .npz with an "
+                                    "`amax` array in the order of LAYERS (quantized weights); per channel "
+                                    "(--per-channel), an .npz with one array per layer, named after it (--save-ranges); "
+                                    "the calibrated ranges are still printed for comparison")
+    a.add_argument("--save-ranges", help="writes the ranges used, per channel: one array per layer")
     a = a.parse_args()
     d = np.load(a.model)
     weights = {k: d[k] for k in d.files}
     images = np.load(a.shard)["x"][:a.count]
-    amax = calibrate(weights, images)
-    print("amax", {k: round(v, 3) for k, v in amax.items()})
-    if a.ranges:
-        given = np.load(a.ranges)["amax"].astype(np.float32)
-        calibrated = np.array([amax[n] for n, _, _, _ in LAYERS], np.float32)
-        amax = {n: float(v) for (n, _, _, _), v in zip(LAYERS, given)}
-        print("amax of", a.ranges, {k: round(v, 3) for k, v in amax.items()},
-              "largest difference", float(np.abs(calibrated - given).max()))
+    if a.per_channel:
+        amax = calibrate_channels(weights, images)
+        print("amax (largest channel)", {k: round(float(v.max()), 3) for k, v in amax.items()})
+        if a.ranges:
+            r = np.load(a.ranges)
+            given = {n: r[n] for n, _, _, _ in LAYERS}
+            print("ranges of", a.ranges, "largest difference",
+                  max(float(np.abs(amax[n] - given[n]).max()) for n in given))
+            amax = given
+        if a.save_ranges:
+            np.savez(a.save_ranges, **amax)
+    else:
+        amax = calibrate(weights, images)
+        print("amax", {k: round(v, 3) for k, v in amax.items()})
+        if a.ranges:
+            given = np.load(a.ranges)["amax"].astype(np.float32)
+            calibrated = np.array([amax[n] for n, _, _, _ in LAYERS], np.float32)
+            amax = {n: float(v) for (n, _, _, _), v in zip(LAYERS, given)}
+            print("amax of", a.ranges, {k: round(v, 3) for k, v in amax.items()},
+                  "largest difference", float(np.abs(calibrated - given).max()))
     np.savez(a.out, **quantize(weights, amax))
-
 
 
 if __name__ == "__main__":
