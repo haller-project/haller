@@ -300,6 +300,45 @@ def crop_ink(img: Image.Image, pad: int) -> Image.Image:
 
 
 # ---------------------------------------------------------------------------
+# Variety log
+# ---------------------------------------------------------------------------
+# When TRACE is a dict, the generator records in it the values drawn for the current sample (writing, layout,
+# photograph), so that the distribution of every variety factor of a shard can be audited. Recording draws no
+# random number: shards are identical with or without the log (generate.py --variety-log).
+TRACE = None
+
+
+def _log(key, value):
+    if TRACE is not None:
+        TRACE[key] = round(float(value), 5) if isinstance(value, (float, np.floating)) else value
+
+
+def ink_gaps(img: Image.Image) -> list:
+    """Blank column runs between the ink of a rendered text, in units of its ink height, largest first. A pixel is
+    ink when darker than halfway between the darkest pixel and the paper."""
+    a = np.asarray(img)
+    dark = float(a.min()) if a.size else 255.0
+    if dark > 245:
+        return []
+    ink = a < 255 - 0.5 * (255 - dark)
+    rows = np.nonzero(ink.any(1))[0]
+    cols = np.nonzero(ink.any(0))[0]
+    if len(rows) < 2 or len(cols) < 2:
+        return []
+    height = rows[-1] - rows[0] + 1
+    c = ink.any(0)[cols[0]:cols[-1] + 1]
+    runs, n = [], 0
+    for v in c:
+        if v:
+            if n:
+                runs.append(n / height)
+            n = 0
+        else:
+            n += 1
+    return sorted(runs, reverse=True)
+
+
+# ---------------------------------------------------------------------------
 # Line on paper, camera
 # ---------------------------------------------------------------------------
 def compose_line(target: Image.Image, neighbors: list, size: int, rng: np.random.Generator) -> tuple[Image.Image, tuple]:
@@ -330,6 +369,8 @@ def add_paper_lines(a: np.ndarray, size: int, rng: np.random.Generator) -> np.nd
         return a
     h, w = a.shape
     darkness = rng.uniform(0.55, 0.9) if kind == "ruled" else rng.uniform(0.3, 0.7)
+    _log("paper_lines", str(kind))
+    _log("paper_line_darkness", darkness)
     tilt = rng.normal(0, 0.01)
     gap = size * rng.uniform(1.4, 2.2)
     y = h * rng.uniform(0.55, 0.95)
@@ -353,6 +394,7 @@ def photograph(line: Image.Image, size: int, rng: np.random.Generator) -> tuple[
     """
     low = max(0.35, 22 / size)  # letters at least ~15 px high
     scale = rng.uniform(low, max(low, 1.3))
+    _log("scale", scale)
     line = line.resize((max(8, int(line.width * scale)), max(8, int(line.height * scale))), Image.BILINEAR)
     size = max(4, int(size * scale))
     ink_map = np.asarray(line, np.float32) / 255
@@ -361,10 +403,19 @@ def photograph(line: Image.Image, size: int, rng: np.random.Generator) -> tuple[
     paper = rng.uniform(100, 245)
     ink = paper * (rng.uniform(0.05, 0.35) if rng.random() < 0.8 else rng.uniform(0.35, 0.75))  # pen or faint pencil
     yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
-    light = 1 + rng.uniform(-0.25, 0.25) * (xx / w - 0.5) + rng.uniform(-0.2, 0.2) * (yy / h - 0.5)
+    gx = rng.uniform(-0.25, 0.25)
+    gy = rng.uniform(-0.2, 0.2)
+    light = 1 + gx * (xx / w - 0.5) + gy * (yy / h - 0.5)
+    _log("paper", paper)
+    _log("ink_ratio", ink / paper)
+    _log("light_gradient", max(abs(gx), abs(gy)))
+    _log("shadow", False)
     if rng.random() < 0.2:  # shadow edge
         edge = rng.uniform(0, w)
-        light *= np.where(xx < edge, rng.uniform(0.6, 0.9), 1.0)
+        f = rng.uniform(0.6, 0.9)
+        light *= np.where(xx < edge, f, 1.0)
+        _log("shadow", True)
+        _log("shadow_factor", f)
     a = (ink + (paper - ink) * ink_map) * light
     a = add_paper_lines(a, size, rng)
     img = Image.fromarray(np.clip(a, 0, 255).astype(np.uint8))
@@ -372,12 +423,19 @@ def photograph(line: Image.Image, size: int, rng: np.random.Generator) -> tuple[
     # Blur in proportion to the size of the writing: from sharp to strongly out
     # of focus, but still legible to a human
     blur = rng.choice(["sharp", "mild", "strong", "motion"], p=[0.3, 0.45, 0.1, 0.15])
+    _log("blur", str(blur))
+    _log("blur_rel", 0.0)
     if blur == "mild":
-        img = img.filter(ImageFilter.GaussianBlur(rng.uniform(0.01, 0.05) * size))
+        r = rng.uniform(0.01, 0.05)
+        _log("blur_rel", r)
+        img = img.filter(ImageFilter.GaussianBlur(r * size))
     elif blur == "strong":
-        img = img.filter(ImageFilter.GaussianBlur(rng.uniform(0.05, 0.09) * size))
+        r = rng.uniform(0.05, 0.09)
+        _log("blur_rel", r)
+        img = img.filter(ImageFilter.GaussianBlur(r * size))
     elif blur == "motion":
         n = max(3, min(5, int(rng.uniform(0.05, 0.15) * size)) | 1)  # Pillow kernels: 3x3 or 5x5
+        _log("blur_rel", n / size)
         k = np.zeros((n, n), np.float32)
         k[n // 2] = 1
         kern = Image.fromarray((k * 255).astype(np.uint8)).rotate(rng.uniform(0, 180))
@@ -385,11 +443,16 @@ def photograph(line: Image.Image, size: int, rng: np.random.Generator) -> tuple[
         kv = kv / max(kv.sum(), 1)
         img = img.filter(ImageFilter.Kernel((n, n), list(kv), scale=1))
 
-    a = np.asarray(img, np.float32) + rng.normal(0, rng.uniform(1, 8), (img.height, img.width))
+    noise = rng.uniform(1, 8)
+    _log("noise_sigma", noise)
+    a = np.asarray(img, np.float32) + rng.normal(0, noise, (img.height, img.width))
     img = Image.fromarray(np.clip(a, 0, 255).astype(np.uint8))
+    _log("jpeg_quality", 100)
     if rng.random() < 0.7:
         buf = io.BytesIO()
-        img.save(buf, "JPEG", quality=int(rng.integers(35, 95)))
+        q = int(rng.integers(35, 95))
+        _log("jpeg_quality", q)
+        img.save(buf, "JPEG", quality=q)
         img = Image.open(buf).convert("L")
     return img, scale
 
@@ -430,15 +493,40 @@ class Synthesizer:
         size = rng.uniform(36, 90)
         hand = self.hand(size, rng)
         strength = rng.uniform(0, 0.06) * size
+        if TRACE is not None:
+            TRACE.clear()
+            _log("text_kind", "fingerprint" if is_fingerprint_text(word) else "word")
+            _log("case", "upper" if text.isupper() else ("lower" if text.islower() else "mixed"))
+            _log("numbered", text[:1].isdigit() and not is_fingerprint_text(word))
+            _log("spaces", text.count(" "))
+            _log("size_px", size)
+            _log("warp_rel", strength / size)
+            _log("hand", "font" if isinstance(hand, FontHand) else "emnist")
+            _log("slant_deg", hand.slant)
+            _log("stroke_width", hand.stroke_width)
+            _log("jitter", hand.jitter)
+            if isinstance(hand, FontHand):
+                _log("font", os.path.basename(hand.path))
+                _log("per_letter", hand.per_letter)
+                _log("tracking_em", hand.tracking)
+            else:
+                _log("spacing", hand.spacing)
 
         def write(t):
             return Image.fromarray(warp(np.asarray(crop_ink(hand.render(t, rng), int(size // 4))), rng, strength))
 
         target = write(text)
+        if TRACE is not None:
+            # largest blank inside a word: the blanks of the spaces of the line are the largest ones
+            gaps, ns = ink_gaps(target), text.count(" ")
+            _log("letter_gap_max", gaps[ns] if len(gaps) > ns else 0.0)
+            if ns:
+                _log("space_gap_min", gaps[ns - 1] if len(gaps) >= ns else 0.0)
         neighbors = []
         if rng.random() < 0.5:
             neighbors = [write(line_prefix(rng) + apply_case(self.vocabulary.word(word_rng), rng, self.lower_share))
                          for _ in range(2)]
+        _log("neighbors", bool(neighbors))
         line, (t0, t1) = compose_line(target, neighbors, int(size), rng)
         photo, scale = photograph(line, int(size), rng)
         found = locate_word(photo)

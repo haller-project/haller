@@ -8,6 +8,7 @@ Output: x (N, 32, 256) uint8 ink maps padded with zeros, w (N,) widths,
 y (N,) labels.
 """
 import argparse
+import json
 import time
 
 import numpy as np
@@ -34,6 +35,9 @@ def main():
     p.add_argument("--matched", action="store_true",
                    help="one random stream per sample, words drawn from a separate stream: shards made with the "
                         "same seed and different --bip39-share differ only in their words")
+    p.add_argument("--variety-log", action="store_true",
+                   help="write the values drawn for every sample to OUT.variety.jsonl (variety audit); "
+                        "the shard is identical with or without it")
     a = p.parse_args()
 
     rng = np.random.default_rng(a.seed)
@@ -45,6 +49,12 @@ def main():
     x = np.zeros((a.count, INPUT_HEIGHT, MAX_INPUT_WIDTH), np.uint8)
     widths, labels = np.zeros(a.count, np.int16), []
     n, i, t0 = 0, 0, time.time()
+    log = None
+    if a.variety_log:
+        from . import synth as synth_module
+        synth_module.TRACE = {}
+        log = open(a.out + ".variety.jsonl", "w")
+        log.write(json.dumps({"config": {"generateur": "haller.synth", "argv": vars(a)}}) + "\n")
     while n < a.count:
         if a.matched:
             rng, word_rng = np.random.default_rng([a.seed, i]), np.random.default_rng([a.seed, i, 1])
@@ -57,12 +67,16 @@ def main():
             continue
         if s is None:
             continue
+        if log is not None:
+            log.write(json.dumps(dict(i=n, gen="haller.synth", label=s[1], **synth_module.TRACE)) + "\n")
         x[n, :, :s[0].shape[1]] = s[0]
         widths[n] = s[0].shape[1]
         labels.append(s[1])
         n += 1
         if n % 5000 == 0:
             print(f"{n}/{a.count} {time.time() - t0:.0f} s", flush=True)
+    if log is not None:
+        log.close()
     np.savez_compressed(a.out, x=x, w=widths, y=np.array(labels))
 
 
