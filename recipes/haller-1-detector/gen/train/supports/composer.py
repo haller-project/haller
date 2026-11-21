@@ -51,6 +51,7 @@ sys.path.insert(0, os.path.join(DET, "supports"))
 import lumiere  # noqa: E402
 import poser_ecriture as P  # noqa: E402
 from poser_ecriture import D, U, mnemonique  # noqa: E402
+from gen_det import J, JR  # noqa: E402  (journal des facteurs tirés, sans tirage : docs/variete.md)
 
 REGLES = {"ligne", "grands_carreaux", "petits_carreaux", "quadrille", "carnet"}
 # décor pris pour des lignes (éventails), papier froissé aux lignes en éventail : papier uni
@@ -264,15 +265,22 @@ def mesurer_photo(rgb, region):
     return flou, bruit
 
 
-def rendre_texte(main, texte, h, rng, k=None, haut_min=None):
-    """Mot ou numéro rendu à K fois la résolution de la photo : (alpha, base, x_encre0, x_encre1, y0, y1)."""
+def rendre_texte(main, texte, h, rng, k=None, haut_min=None, maxw=None):
+    """Mot ou numéro rendu à K fois la résolution de la photo : (alpha, base, x_encre0, x_encre1, y0, y1).
+    maxw (px de la photo) : mot trop long écrit plus petit (au plus 0,6 de hauteur) puis plus serré (gen_univ)."""
     k = k or K
-    m, base = U.ecrire_mot(main, texte, h * k, rng)
+    m, base = U.ecrire_mot(main, texte, h * k, rng, maxw=maxw * k if maxw else None)
     al = 1 - np.asarray(m, np.float32) / 255.0
     ys, xs = np.nonzero(al > 0.25)
     if len(xs) == 0:
         return None
     return al, base, xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
+
+
+def noter_rendu(rend):
+    """Journal de variété : blanc entre lettres du mot effectivement posé."""
+    if rend is not None:
+        JR.noter_mot(255 * (1 - rend[0]))
 
 
 def poser(rgb, lig, s0, rend, encre, flou, bruit, rng, k=None):
@@ -444,6 +452,7 @@ def rendre(a, travail, annot, rng, ex, par, fonts, essais=6):
     t = a.get("traits") or {}
     imprime = bool(t.get("regulier")) and code not in TRAITS_IGNORES
     for essai in range(essais):
+        J.reouvrir()
         if imprime:
             lignes, step = lignes_imprimees(a, region, rng, L)
         else:
@@ -579,10 +588,11 @@ def composer_page(a, rgb0, masque, region, lignes, places, cols, sel, flou, brui
         dispo = fin_col - s_mot
         if dispo < 3 * hcap:
             return None
-        if larg > dispo:   # mot trop long pour la colonne : la main écrit plus petit
-            rm = rendre_texte(main, mots[k], hm * dispo / larg * 0.97, rng)
+        if larg > dispo:   # mot trop long pour la colonne : la main écrit plus petit et plus serré
+            rm = rendre_texte(main, mots[k], hm, rng, maxw=dispo * 0.97)
             if rm is None or (rm[3] - rm[2]) / K > dispo:
                 return None
+        noter_rendu(rm)
         pm = poser(rgb, lig, s_mot + rng.normal(0, 0.05 * hcap), rm, encre, flou, bruit, rng)
         if pm is None:
             return None
@@ -686,10 +696,11 @@ def rendre_carte(a, travail, annot, rng, ex, par, fonts):
             return None
         dispo = lig.longueur * (0.97 - depart)
         larg = (rm[3] - rm[2]) / K
-        if larg > dispo:
-            rm = rendre_texte(main, mots[k], hc * dispo / larg * 0.97, rng)
+        if larg > dispo:   # mot trop long pour la case : plus petit et plus serré
+            rm = rendre_texte(main, mots[k], hc, rng, maxw=dispo * 0.97)
             if rm is None or (rm[3] - rm[2]) / K > dispo:
                 return None
+        noter_rendu(rm)
         pm = poser(rgb, lig, depart * lig.longueur, rm, encre, flou, bruit, rng)
         if pm is None:
             return None
@@ -734,7 +745,17 @@ def tirer_quantiles(q, rng, elargir=1.5, log=True):
     return float(np.exp(x)) if log else float(x)
 
 
-def recadrer(im, v, cible, rng):
+H_REEL_MIN = 0.019    # hauteur médiane minimale des mots dans les photos réelles (petit côté)
+H_CARTE_MIN = 0.022   # hauteur médiane des mots d'une carte / petit côté, sous laquelle la photo est rapprochée
+
+
+def hauteur_mots(im, v):
+    hs = [np.linalg.norm(np.array(o["quad"][3]) - np.array(o["quad"][0])) for o in v["objets"]
+          if o.get("classe") == "mot" and "k" in o and not o.get("cache")]
+    return float(np.median(hs)) / min(im.size) if hs else 1.0
+
+
+def recadrer(im, v, cible, rng, garder_carte=False):
     """Recadre la photo pour que la hauteur médiane des mots rapportée à la hauteur de l'image approche `cible`
     (on ne peut que rapprocher : jamais d'agrandissement du champ). Le cadre garde les proportions de la photo et
     contient tout le texte avec une marge ; vérité ramenée au cadre."""
@@ -747,7 +768,10 @@ def recadrer(im, v, cible, rng):
     if r >= cible:
         return im, v
     f = r / cible                       # côté du cadre / côté de la photo
-    pts = np.array([p for o in v["objets"] if "k" in o for p in o["quad"]], float)
+    pts = [p for o in v["objets"] if "k" in o for p in o["quad"]]
+    if garder_carte:   # carte entière dans le cadre (une carte réelle n'est pas coupée autour de ses mots)
+        pts += [p for c in v.get("cartes", []) for p in c["coins"]]
+    pts = np.array(pts, float)
     x0, y0 = pts.min(0)
     x1, y1 = pts.max(0)
     mg = rng.uniform(0.03, 0.12)
@@ -786,10 +810,17 @@ def en_cibles(im, v):
     return np.asarray(canvas), U.cibles_univ(v2, D.OUT_SIZE[0] / W)
 
 
+INCLINAISON_MAX = 18.0   # inclinaison maximale d'une variante de carte retenue, degrés (docs/variete.md)
+
+
 def utilisable(a):
     """Support retenu pour la composition : carte d'entraînement, papier réglé dont les lignes sont relevées, ou papier
     uni. Les cartes d'évaluation (jeu eval) ne servent jamais ici."""
     if a.get("zones") is not None or a.get("carte"):
+        # variantes inclinées de plus de 18° (cartes.py avant le 21/11 : jusqu'à 25°) écartées (docs/variete.md)
+        r = (a.get("geometrie") or {}).get("rotation")
+        if r is not None and abs(((float(r) + 45) % 90) - 45) > INCLINAISON_MAX:
+            return False
         return a.get("jeu", "train") == "train"
     t = a.get("traits") or {}
     if a.get("support") in REGLES:
@@ -858,12 +889,23 @@ def main():
 
     def tirer():
         while True:
+            J.reouvrir()
             lot = par_type[types[rng.choice(len(types), p=pt)]]
             s = lot[rng.integers(len(lot))]
             if s.get("zones") is not None:   # cartes : orientation et échelle déjà tirées par cartes.py varier
                 r = rendre_carte(s, a.travail, a.annot, rng, ex, par, fonts)
                 if r is not None:
-                    return r
+                    # mots plus petits que le réel (carte petite dans l'image ou cases étroites) : photo rapprochée,
+                    # hauteur des mots tirée dans la distribution réelle (docs/variete.md ; réel min 0,019)
+                    im, v = r
+                    if hauteur_mots(im, v) < H_CARTE_MIN:
+                        im, v = recadrer(im, v, tirer_quantiles(q_mots, rng), rng, garder_carte=True)
+                    # mots illisibles (réel : hauteur médiane >= 0,019 du petit côté, aucun mot sous 0,48 de la
+                    # médiane de sa page) : page écartée (cases étroites, sous un logo imprimé ; docs/variete.md)
+                    q = [o["quad"] for o in v["objets"] if o.get("classe") == "mot" and "k" in o and not o.get("cache")]
+                    if hauteur_mots(im, v) < H_REEL_MIN or min(JR.tailles_relatives(q) or [1.0]) < 0.5:
+                        continue
+                    return im, v
                 continue
             r = rendre(s, a.travail, a.annot, rng, ex, par, fonts)
             if r is not None:
@@ -874,12 +916,19 @@ def main():
     if a.mode == "banc":
         os.makedirs(a.sortie, exist_ok=True)
         verite, chemins = {}, []
+        jw = J.Ecrivain(a.sortie, config_journal(a))
         for i in range(a.nombre):
+            J.ouvrir("composer", i)
             im, v = tirer()
             nom = f"c{a.graine:05d}_{i:04d}.jpg"
-            im.save(os.path.join(a.sortie, nom), quality=int(rng.integers(80, 95)))
+            q = int(rng.integers(80, 95))
+            J.noter("jpeg_qualite", q)
+            J.noter("image", nom)
+            jw.ecrire(JR.finir_page(v, im.size))
+            im.save(os.path.join(a.sortie, nom), quality=q)
             verite[nom] = v
             chemins.append(os.path.join(a.sortie, nom))
+        jw.close()
         json.dump(verite, open(os.path.join(a.sortie, "verite.json"), "w"), ensure_ascii=False,
                   default=lambda o: o.item() if hasattr(o, "item") else str(o))
         if a.planche:
@@ -888,12 +937,24 @@ def main():
         X = np.zeros((a.nombre, 384, 288), np.uint8)
         Y = np.zeros((a.nombre, 192, 144, 12), np.uint8)
         meta = []
+        jw = J.Ecrivain(a.sortie, config_journal(a))
         for i in range(a.nombre):
+            J.ouvrir("composer", i)
             im, v = tirer()
+            jw.ecrire(JR.finir_page(v, im.size))
             X[i], Y[i] = en_cibles(im, v)
             meta.append(dict(style=v["style"], defaut=v["defaut"], format=v["format"], support=v["support"], n=v["n"],
                              source=v["source"], lumiere=v["lumiere"], colonnes=v["colonnes"], lignes=v["lignes"]))
+        jw.close()
         np.savez_compressed(a.sortie, x=X, y=Y, meta=json.dumps(meta))
+
+
+def config_journal(a):
+    srcs = [os.path.join(ICI, "composer.py"), os.path.join(ICI, "lumiere.py"), P.__file__,
+            os.path.join(DET, "gen_det.py"), os.path.join(DET, "gen_univ.py"), D.G.__file__]
+    c = J.config_lot("composer", srcs, D.VARIABLES_ENV + tuple(k for k in os.environ if k.startswith("UNIV_")))
+    c.update(graine=a.graine, nombre=a.nombre, annot=os.path.abspath(a.annot), codes=a.codes, argv=sys.argv[1:])
+    return c
 
 
 if __name__ == "__main__":

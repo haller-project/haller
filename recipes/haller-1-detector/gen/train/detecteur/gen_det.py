@@ -32,11 +32,15 @@ import types  # noqa: E402
 sys.modules["train"] = types.ModuleType("train")
 sys.modules["train"].charger = None
 import gen_sim as G  # noqa: E402  (fait os.chdir vers train/)
+sys.path.insert(0, os.path.abspath(os.path.join(ICI, "..")))
+from variete import journal as J  # noqa: E402  (journal des facteurs tirés, sans tirage : docs/variete.md)
+from variete import resume as JR  # noqa: E402
 from seed_sim import mnemonique  # noqa: E402
 os.chdir(_cwd)
 C = G.C
 
 FRAME = G.FRAME                  # photo portrait 1944 x 2592
+AJUSTER_LARGEUR = False          # posé par gen_univ.py (UNIV_CADRE) le temps d'une photo d'un autre format
 NET_SIZE = (288, 384)            # entrée du détecteur (largeur, hauteur)
 OUT_SIZE = (144, 192)            # sorties du détecteur (1/2)
 DEFAUTS = ["normal", "coupe_haut", "coupe_bas", "coupe_cote", "proche", "loin", "perspective", "rotation",
@@ -78,6 +82,9 @@ def polices(test):
                   for g in os.listdir(os.path.join(rep, f)) if g.endswith(".ttf")]
         return {"cursive": ps, "minuscules": ps}
     fs = sorted(f for f in os.listdir(POLICES_TRAIN) if f.lower().endswith((".ttf", ".otf")))
+    # polices aux minuscules minuscules (x < 0,25 em : hampes et boucles 3 à 4 fois le corps, mots de 10 à 120 px
+    # selon leurs lettres) écartées : proportions d'aucune écriture réelle (docs/variete.md ; 7 polices sur 287)
+    fs = [f for f in fs if hauteur_x(os.path.join(POLICES_TRAIN, f)) >= X_MIN_POLICE]
     cur = [os.path.join(POLICES_TRAIN, f) for f in fs if f in CURSIVES]
     autres = [os.path.join(POLICES_TRAIN, f) for f in fs if f not in CURSIVES]
     return {"cursive": cur or autres, "minuscules": autres}
@@ -93,6 +100,46 @@ def hauteur_x(path, cache={}):
     return cache[path]
 
 
+# Contrôle de la variété (docs/variete.md, registre train/variete/registre.json) : bornes réalistes appliquées sans
+# tirage supplémentaire.
+BLANC_MAX = 0.7      # plus grand blanc entre lettres d'un mot, en hauteurs de sa boîte d'encre (réel : p99 0,66-0,71)
+X_MIN_POLICE = 0.25  # hauteur des minuscules d'une police d'entraînement, au moins 0,25 em
+MIN_AMINCI = 48      # hauteur (px) sous laquelle le trait EMNIST n'est pas aminci (sinon lettres en morceaux)
+
+
+def limiter_blancs(m, cap=BLANC_MAX):
+    """Réduit à `cap` hauteurs de la boîte d'encre tout blanc intérieur d'un mot (colonnes retirées au milieu du
+    blanc). m : image du mot, 255 = papier. Encre : plus sombre qu'à mi-chemin du trait le plus sombre et du papier."""
+    m = np.asarray(m)
+    if m.ndim != 2 or m.size == 0:
+        return m
+    noir = float(m.min())
+    if noir > 245:
+        return m
+    ink = m < 255 - 0.5 * (255 - noir)
+    rows = np.nonzero(ink.any(1))[0]
+    cols = np.nonzero(ink.any(0))[0]
+    if len(rows) < 2 or len(cols) < 2:
+        return m
+    lim = max(1, int(cap * (rows[-1] - rows[0] + 1)))
+    c = ink.any(0)
+    garder = np.ones(m.shape[1], bool)
+    x, x1 = cols[0], cols[-1]
+    while x <= x1:
+        if not c[x]:
+            d = x
+            while x <= x1 and not c[x]:
+                x += 1
+            n = x - d
+            if n > lim:
+                k = n - lim
+                a = d + (n - k) // 2
+                garder[a:a + k] = False
+        else:
+            x += 1
+    return m if garder.all() else np.ascontiguousarray(m[:, garder])
+
+
 class Main:
     """Écriture d'une page : style, police, pente, épaisseur, encre."""
     def __init__(self, style, rng, ex, par, fonts):
@@ -100,12 +147,16 @@ class Main:
         self.epais = int(rng.choice([-1, 0, 0, 0, 1, 1]))
         self.pente = rng.normal(0, 5)
         self.esp = rng.uniform(0.1, 0.25)
-        # UNIV_ESP_LARGE=p (nuit du 20-21/11) : sur une part p des pages, lettres espacées de 0,3 à 0,55 hauteur de mot
+        # UNIV_ESP_LARGE=p (nuit du 20-21/11) : sur une part p des pages, lettres espacées de 0,3 à 0,5 hauteur de mot
         # (capitales détachées écrites dans une case, « F U E L » des photos web) ; tirage seulement si la variable est
         # posée, pour ne pas changer les autres lots
         if os.environ.get("UNIV_ESP_LARGE") and rng.random() < float(os.environ["UNIV_ESP_LARGE"]):
-            self.esp = rng.uniform(0.3, 0.55)
+            self.esp = rng.uniform(0.3, 0.5)  # au plus ~0,5 hauteur de lettre (réel, retour du 21/11)
         self.encre = rng.uniform(15, 55) if rng.random() < 0.8 else rng.uniform(55, 110)
+        J.noter("esp_lettres_tire_h", self.esp)
+        J.noter("pente_ecriture_deg", self.pente)
+        J.noter("epaisseur_trait", self.epais)
+        J.noter("encre_niveau", self.encre)
         self.font = None
         # UNIV_POLICE_RARE=1 (compositeur, retouche du 20/11) : l'écriture réelle dominante est en capitales
         # irrégulières au stylo bille ; capitales en police 15 % au lieu de 30 %, trait des polices plus fin
@@ -116,11 +167,16 @@ class Main:
             self.x = rng.uniform(0.5, 0.65)
             self.trait = rng.uniform(0.03, 0.06) if rare else rng.uniform(0.05, 0.09)
             self.casse = "maj" if style == "capitales" else ("cap" if rng.random() < 0.15 else "min")
+            J.noter("trait_police", self.trait)
+        J.noter("police", os.path.basename(self.font) if self.font else "emnist")
 
     def composer(self, texte, haut, rng, pente=None):
         pente = self.pente if pente is None else pente
         if self.font is None:
-            return G.composer(texte, haut, self.ex, self.par, rng, self.epais, pente, self.esp)
+            # trait EMNIST aminci seulement pour une écriture assez grande (sinon lettres en morceaux)
+            epais = self.epais if self.epais >= 0 or haut >= MIN_AMINCI else 0
+            m, base = G.composer(texte, haut, self.ex, self.par, rng, epais, pente, self.esp)
+            return limiter_blancs(m), base
         if self.casse == "maj":
             texte = texte.upper()
             taille = max(8, int(haut / 0.72))
@@ -145,13 +201,15 @@ class Main:
             im2 = Image.new("L", (im.width + 2 * marge, H), 255)
             im2.paste(im, (marge, 0))
             im = im2.transform(im2.size, Image.AFFINE, (1, s, -s * base, 0, 1, 0), Image.BILINEAR, fillcolor=255)
-        return np.asarray(im), base
+        return limiter_blancs(np.asarray(im)), base
 
 
 def poser(page, m, x, y, encre, objets, info):
     """Encre m (255 papier) en (x, y) et enregistre la boîte d'encre dans objets."""
     G.encrer(page, m, x, y, encre)
     ys, xs = np.nonzero(np.asarray(m) < 128)
+    if info.get("classe") == "mot" and len(ys):
+        JR.noter_mot(m)
     if len(xs) == 0:
         return
     x0, x1, y0, y1 = x + xs.min(), x + xs.max() + 1, y + ys.min(), y + ys.max() + 1
@@ -167,6 +225,7 @@ def page_liste(mots, main, rng, opts):
     haut = rng.uniform(50, 80) if ncol == 1 else rng.uniform(45, 65)
     pas = haut * rng.uniform(1.45, 2.1)
     ytop = rng.uniform(0.06, 0.18) * H
+    J.noter("interligne_h", pas / haut)
     if par_col * pas + ytop > 0.95 * H:
         f = 0.95 * H / (par_col * pas + ytop)
         haut, pas = haut * f, pas * f
@@ -194,7 +253,9 @@ def page_liste(mots, main, rng, opts):
         if opts["numeros"]:
             mn, bn = main.composer(fmt.format(k + 1), haut, rng, pente)
             poser(page, mn, x, int(yb - bn), main.encre, objets, dict(classe="numero", k=k, rang=row, col=col))
-            x += mn.shape[1] + int(haut * rng.uniform(0.25, 0.7))
+            e = rng.uniform(0.25, 0.7)
+            J.ajouter("ecart_numero_mot_h", e)
+            x += mn.shape[1] + int(haut * e)
         m, base = main.composer(mot.upper() if main.font is None else mot, haut, rng, pente)
         if m.shape[1] > 0.95 * largeur_col:
             f = 0.95 * largeur_col / m.shape[1]
@@ -326,6 +387,9 @@ def cadrage(page, defaut, rng, carte):
     cx, cy = W / 2 + rng.normal(0, 0.04 * W), H / 2 + rng.normal(0, 0.03 * H)
     if defaut == "proche":
         hp *= rng.uniform(1.3, 1.9)
+        # gros plan : au plus 1,3 hauteur de cadre pour une carte (~70 % visible), 1,5 pour une feuille ou une scène
+        # de plusieurs documents (docs/variete.md : 1/3 d'une carte seulement à 2,1 hauteurs, implausible)
+        hp = min(hp, (1.3 if carte else 1.5) * H)
         cx += rng.normal(0, 0.1 * W)
         cy += rng.normal(0, 0.1 * H)
     elif defaut == "loin":
@@ -334,10 +398,18 @@ def cadrage(page, defaut, rng, carte):
     elif defaut == "perspective":
         persp = rng.uniform(0.08, 0.16)
     elif defaut == "rotation":
-        ang = rng.choice([-1, 1]) * rng.uniform(8, 35)
+        # rotation forte, cas rare : 6-18° (réel : max 10,9°, supports vierges 17° ; jamais 30-45°, 21/11)
+        ang = rng.choice([-1, 1]) * rng.uniform(6, 18)
     elif defaut == "retournee":
         ang = 180 + rng.normal(0, 6)
+    J.noter("rotation_deg", ang)
+    J.noter("perspective_amp", persp)
+    J.noter("remplir", remplir)
     wp = hp * page.width / page.height
+    if (AJUSTER_LARGEUR or carte) and defaut not in ("proche", "coupe_cote") and wp > 0.95 * W:
+        # cadre plus étroit que 3:4 (UNIV_CADRE de gen_univ.py), ou carte en paysage : le document est cadré pour
+        # tenir en largeur (une carte n'est coupée des deux côtés que de près ; docs/variete.md)
+        hp, wp = hp * 0.95 * W / wp, 0.95 * W
     if defaut in ("rotation", "retournee"):  # la page tournée doit tenir dans le cadre
         a = math.radians(ang)
         ext_w = abs(wp * math.cos(a)) + abs(hp * math.sin(a))
@@ -351,7 +423,11 @@ def cadrage(page, defaut, rng, carte):
         cy = H - hp / 2 + coupe * hp
     elif defaut == "coupe_cote":
         c = rng.uniform(0.06, 0.25)
+        J.noter("coupe_part", c)
         cx = (wp / 2 - c * wp) if rng.random() < 0.5 else (W - wp / 2 + c * wp)
+    J.noter("hauteur_doc_cadre", hp / H)
+    if defaut in ("coupe_haut", "coupe_bas"):
+        J.noter("coupe_part", coupe)
     a = math.radians(ang)
     coins = np.array([(-wp / 2, -hp / 2), (wp / 2, -hp / 2), (wp / 2, hp / 2), (-wp / 2, hp / 2)])
     rot = np.array([[math.cos(a), -math.sin(a)], [math.sin(a), math.cos(a)]])
@@ -368,6 +444,7 @@ def photographier(page, Hm, defaut, rng, scale):
     table = rng.uniform(15, 110)
     if defaut == "planche" or rng.random() < 0.15:
         table = rng.uniform(110, 200)  # table claire
+    J.noter("table_gris", table)
     out = page.transform((W, H), Image.PERSPECTIVE, tuple(inv.ravel()[:8]), Image.BILINEAR, fillcolor=int(table))
     a = np.asarray(out, np.float32).copy()
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
@@ -382,7 +459,10 @@ def photographier(page, Hm, defaut, rng, scale):
         if rng.random() < 0.5:  # reflet
             hx, hy = rng.uniform(0.2, 0.8, 2)
             a += rng.uniform(40, 120) * np.exp(-((xx - hx) ** 2 + (yy - hy) ** 2) / (2 * rng.uniform(0.03, 0.1) ** 2))
-    a = a * np.clip(eclair, 0.15, 2.0) * rng.uniform(0.55, 1.0)
+    gain = rng.uniform(0.55, 1.0)
+    J.noter("eclairage_gradient", max(abs(gx), abs(gy)))
+    J.noter("exposition_gain", gain)
+    a = a * np.clip(eclair, 0.15, 2.0) * gain
     masque = None
     if defaut == "ombre":
         a, masque = ombres_objets(a, rng, W, H)
@@ -393,6 +473,8 @@ def photographier(page, Hm, defaut, rng, scale):
         bruit = rng.uniform(1, 4)
     else:
         sig, bruit = rng.uniform(0.4, 1.6), rng.uniform(2, 5)
+    J.noter("flou_sigma_1024", sig * 1024 / FRAME[1])   # écart type du flou, px à 1024 de côté long
+    J.noter("bruit_sigma", bruit)
     out = out.filter(ImageFilter.GaussianBlur(sig * scale))
     a = np.asarray(out, np.float32) + rng.normal(0, bruit * min(1.0, math.sqrt(scale * 2)), (H, W))
     return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)), masque
@@ -533,6 +615,19 @@ def cibles(v, scale_out, ignore_cut=True):
     return y
 
 
+VARIABLES_ENV = ("UNIV_REEL", "UNIV_ESP_LARGE", "UNIV_POLICE_RARE", "UNIV_NUMEROS_CORRIGES", "UNIV_ROT", "UNIV_ALTERE",
+                 "UNIV_VERSO", "UNIV_MULTI", "UNIV_CADRE", "UNIV_SANS_LIGNES", "MODELES_CARTES")
+
+
+def config_journal(graine, nombre, test, generateur="gen_det"):
+    srcs = [os.path.join(ICI, "gen_det.py"), G.__file__]
+    if generateur == "gen_univ":
+        srcs.append(os.path.join(ICI, "gen_univ.py"))
+    c = J.config_lot(generateur, srcs, VARIABLES_ENV + tuple(k for k in os.environ if k.startswith("UNIV_")))
+    c.update(graine=graine, nombre=nombre, test=bool(test), argv=sys.argv[1:])
+    return c
+
+
 def main():
     mode, sortie, nombre, graine = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4])
     test = "--test" in sys.argv
@@ -545,20 +640,31 @@ def main():
         X = np.zeros((nombre, NET_SIZE[1], NET_SIZE[0]), np.uint8)
         Y = np.zeros((nombre, OUT_SIZE[1], OUT_SIZE[0], 9), np.uint8)
         meta = []
+        jw = J.Ecrivain(sortie, config_journal(graine, nombre, test))
         for i in range(nombre):
+            J.ouvrir("gen_det", i)
             img, v = generer(rng, ex, par, fonts, scale=scale)
+            jw.ecrire(JR.finir_page(v, FRAME))
             X[i] = np.asarray(img.reduce(2))
             Y[i] = cibles(v, OUT_SIZE[0] / FRAME[0])
             meta.append(dict(style=v["style"], defaut=v["defaut"], type=v["type"], n=v["n"]))
+        jw.close()
         np.savez_compressed(sortie, x=X, y=Y, meta=json.dumps(meta))
     else:
         os.makedirs(sortie, exist_ok=True)
         verite = {}
+        jw = J.Ecrivain(sortie, config_journal(graine, nombre, test))
         for i in range(nombre):
+            J.ouvrir("gen_det", i)
             img, v = generer(rng, ex, par, fonts, defaut=opt("--defaut"), style=opt("--style"), type_=opt("--type"))
             nom = f"det{graine:03d}_{i:04d}.jpg"
-            img.save(os.path.join(sortie, nom), quality=int(rng.integers(70, 95)))
+            q = int(rng.integers(70, 95))
+            J.noter("jpeg_qualite", q)
+            J.noter("image", nom)
+            jw.ecrire(JR.finir_page(v, FRAME))
+            img.save(os.path.join(sortie, nom), quality=q)
             verite[nom] = v
+        jw.close()
         json.dump(verite, open(os.path.join(sortie, "verite.json"), "w"), ensure_ascii=False)
 
 

@@ -1,0 +1,154 @@
+{
+ "e9dc866d13842135": {
+  "date": "2026-11-21",
+  "env": {
+   "UNIV_ALTERE": "0.3",
+   "UNIV_MULTI": "0.15",
+   "UNIV_NUM": "0.6",
+   "UNIV_NUMEROS_CORRIGES": "1",
+   "UNIV_PASTILLE": "0.4",
+   "UNIV_REEL": "1",
+   "UNIV_ROT": "1",
+   "UNIV_SERRE": "0.4",
+   "UNIV_VERSO": "0.12"
+  },
+  "generateur": "gen_univ",
+  "lot_examine": "V6",
+  "note": "gen_univ univ5 + UNIV_PASTILLE=0.4, banc de 360 pages (graines 63001-63004, machine louée, Pillow 13.0 / numpy 2.5.5 du venv ; Pillow 10.2 plante), 21/11/2026 : audit passe ; planches regardées : 24 cartes procédurales (pastilles sombres à chiffres clairs plausibles, comme Trezor et blockdyor), 12 pages à encre la plus pâle (lisibles, crayon ou feutre clair), 12 pages aux mots les plus recouverts (cursive débordante sur la ligne suivante, rares cas illisibles comme u63003_0086) : recouvrement comparé au réel (3e mot recouvert > 50 % : 5,3 % généré contre 3,9 % réel ; > 35 % : 9,0 % contre 15,6 %), plausible en cas rare, pas de correction",
+  "planches": [
+   "blanc_altere_h",
+   "blanc_lettres_image",
+   "blanc_lettres_max",
+   "bruit_sigma",
+   "colonnes",
+   "ecart_numero_mot_h",
+   "ecart_rature_mot_h",
+   "eclairage_gradient",
+   "esp_lettres_tire_h",
+   "exposition_gain",
+   "flou_sigma_1024",
+   "h_mot",
+   "inclinaison_deg",
+   "interligne_h",
+   "jpeg_qualite",
+   "part_carte",
+   "part_mots_caches",
+   "pente_ecriture_deg",
+   "perspective",
+   "rotation_deg"
+  ],
+  "sources": [
+   "gen_det.py",
+   "gen_sim.py",
+   "gen_univ.py"
+  ]
+ },
+ "092dcb1e39fc103d": {
+  "date": "2026-11-21",
+  "env": {
+   "UNIV_POLICE_RARE": "1",
+   "UNIV_REEL": "1"
+  },
+  "generateur": "composer",
+  "lot_examine": "K",
+  "note": "Compositeur v2 (composer.py), 460 pages (supports annot_u5 180, variantes_v2 180, cartes brutes 100), graines 70001-72002, machine louée, 21/11/2026 : planches regardées (blancs <= 0,8 sur capitales en case, hauteurs de mots >= 0,019, températures, inclinaisons <= 18°) ; corrections : docs/variete.md",
+  "planches": [
+   "blanc_lettres_image",
+   "blanc_lettres_max",
+   "colonnes",
+   "esp_lettres_tire_h",
+   "h_mot",
+   "inclinaison_deg",
+   "jpeg_qualite",
+   "lumiere_temperature",
+   "part_carte",
+   "part_mots_caches",
+   "pente_ecriture_deg",
+   "perspective"
+  ],
+  "sources": [
+   "composer.py",
+   "gen_det.py",
+   "gen_sim.py",
+   "gen_univ.py",
+   "lumiere.py",
+   "poser_ecriture.py"
+  ]
+ },
+ "0868322f2bad8f77": {
+  "date": "2026-11-21",
+  "env": {
+   "UNIV_ALTERE": "0.3",
+   "UNIV_MULTI": "0.15",
+   "UNIV_NUM": "0.6",
+   "UNIV_NUMEROS_CORRIGES": "1",
+   "UNIV_PASTILLE": "0.4",
+   "UNIV_REEL": "1",
+   "UNIV_ROT": "1",
+   "UNIV_SERRE": "0.4",
+   "UNIV_VERSO": "0.12"
+  },
+  "generateur": "gen_univ",
+  "note": "Same configuration as e9dc866d13842135, with the source files of this published recipe: only comments, paths and photo names changed for the publication (README.md, Frozen code); same pages from the same seeds (README.md, Verification).",
+  "planches": [
+   "blanc_altere_h",
+   "blanc_lettres_image",
+   "blanc_lettres_max",
+   "bruit_sigma",
+   "colonnes",
+   "ecart_numero_mot_h",
+   "ecart_rature_mot_h",
+   "eclairage_gradient",
+   "esp_lettres_tire_h",
+   "exposition_gain",
+   "flou_sigma_1024",
+   "h_mot",
+   "inclinaison_deg",
+   "interligne_h",
+   "jpeg_qualite",
+   "part_carte",
+   "part_mots_caches",
+   "pente_ecriture_deg",
+   "perspective",
+   "rotation_deg"
+  ],
+  "sources": [
+   "gen_det.py",
+   "gen_sim.py",
+   "gen_univ.py"
+  ],
+  "identique_a": "e9dc866d13842135"
+ },
+ "760169ce364856c8": {
+  "date": "2026-11-21",
+  "env": {
+   "UNIV_POLICE_RARE": "1",
+   "UNIV_REEL": "1"
+  },
+  "generateur": "composer",
+  "note": "Same configuration as 092dcb1e39fc103d, with the source files of this published recipe: only comments, paths and photo names changed for the publication (README.md, Frozen code); same pages from the same seeds (README.md, Verification).",
+  "planches": [
+   "blanc_lettres_image",
+   "blanc_lettres_max",
+   "colonnes",
+   "esp_lettres_tire_h",
+   "h_mot",
+   "inclinaison_deg",
+   "jpeg_qualite",
+   "lumiere_temperature",
+   "part_carte",
+   "part_mots_caches",
+   "pente_ecriture_deg",
+   "perspective"
+  ],
+  "sources": [
+   "composer.py",
+   "gen_det.py",
+   "gen_sim.py",
+   "gen_univ.py",
+   "lumiere.py",
+   "poser_ecriture.py"
+  ],
+  "identique_a": "092dcb1e39fc103d"
+ }
+}

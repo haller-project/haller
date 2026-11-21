@@ -1,0 +1,1092 @@
+{
+ "version": "2026-11-21",
+ "principe": "Variété proportionnée au réel (20-21/11/2026) : pour chaque facteur, distribution mesurée sur les photos réelles (statistiques agrégées seulement, jamais d'image réelle à l'entraînement), plage plausible, part maximale des cas rares, justification. Un lot dont un facteur sort de sa plage au-delà de la tolérance, ou dont les cas rares dépassent leur part, est refusé (variete/garde.py).",
+ "champs": {
+  "plage": "[min, max] plausibles ; part_hors_plage_max : tolérance",
+  "rares": "seuil, sens (> par défaut), part_max admise",
+  "par": "unité de comptage (page, mot, échantillon)",
+  "requis": "faux : facteur absent du journal toléré (tirage conditionnel)",
+  "generateurs": "générateurs dont le journal porte ce facteur"
+ },
+ "facteurs": {
+  "blanc_lettres_max": {
+   "definition": "plus grand blanc entre lettres d'un mot, sur l'encre propre avant la photo (seuil à mi-chemin entre le trait le plus sombre et le papier), en hauteurs de la boîte d'encre du mot ; une valeur par mot",
+   "par": "mot",
+   "generateurs": [
+    "gen_univ",
+    "gen_det",
+    "composer"
+   ],
+   "reel": {
+    "q05": 0.0797,
+    "q50": 0.2344,
+    "q95": 0.4844,
+    "q99": 0.7056,
+    "max": 1.2292,
+    "source": "1 154 mots du jeu réel, capitales (602) ; mesure image variete/mesures_image.py ; global q50 0,22, q99 0,66"
+   },
+   "plage": [
+    0,
+    1.0
+   ],
+   "part_hors_plage_max": 0.002,
+   "rares": [
+    {
+     "seuil": 0.5,
+     "part_max": 0.08
+    },
+    {
+     "seuil": 0.75,
+     "part_max": 0.015
+    }
+   ],
+   "justification": "Un humain n'écrit jamais un mot avec un blanc plus large qu'une lettre (rt7.jpg : « MAN   GO ») ; les seuls cas réels au-delà de 0,75 sont des capitales écrites une par case (NEPHEW, SHERIFF : 0,8-0,9)."
+  },
+  "blanc_lettres_image": {
+   "definition": "plus grand blanc entre lettres d'un mot, mesuré sur l'image finale d'un banc avec la même fonction que sur les photos réelles (variete/mesures_image.blancs_mot)",
+   "par": "mot",
+   "generateurs": [],
+   "reel": {
+    "q05": 0.0156,
+    "q50": 0.2188,
+    "q95": 0.5028,
+    "q99": 0.6611,
+    "max": 1.2292,
+    "source": "1 154 mots du jeu réel, tous styles"
+   },
+   "plage": [
+    0,
+    1.0
+   ],
+   "part_hors_plage_max": 0.005,
+   "rares": [
+    {
+     "seuil": 0.5,
+     "part_max": 0.08
+    },
+    {
+     "seuil": 0.75,
+     "part_max": 0.015
+    }
+   ],
+   "justification": "Comparaison directe au réel (même mesure) : réel q95 0,50, p99 0,66 ; tolérance 0,5 % hors plage pour les artefacts de mesure (lettre rognée, trait pâle coupé, comme « LAZY » 1,23 dans le réel)."
+  },
+  "blanc_altere_h": {
+   "definition": "blanc inséré dans un mot par l'altération « blanc » de gen_univ, en hauteurs de mot",
+   "par": "mot",
+   "generateurs": [
+    "gen_univ"
+   ],
+   "reel": null,
+   "plage": [
+    0,
+    0.5
+   ],
+   "requis": false,
+   "justification": "Capitales détachées jusqu'à ~0,5 hauteur de lettre, écriture liée 0,05-0,15 (retour du 21/11) ; il s'ajoute au blanc naturel : la plage totale est contrôlée par blanc_lettres_max."
+  },
+  "letter_gap_max": {
+   "definition": "lecteurs de mots : plus grand blanc entre lettres de la ligne cible, hors espaces (numéro, préfixe d'empreinte), en hauteurs d'encre de la ligne",
+   "par": "echantillon",
+   "generateurs": [
+    "haller.synth"
+   ],
+   "reel": {
+    "q05": 0.0156,
+    "q50": 0.2188,
+    "q95": 0.5028,
+    "q99": 0.6611,
+    "max": 1.2292,
+    "source": "1 154 mots du jeu réel"
+   },
+   "plage": [
+    0,
+    1.0
+   ],
+   "part_hors_plage_max": 0.002,
+   "rares": [
+    {
+     "seuil": 0.5,
+     "part_max": 0.08
+    },
+    {
+     "seuil": 0.75,
+     "part_max": 0.015
+    }
+   ],
+   "justification": "Même règle que blanc_lettres_max : un mot n'est jamais coupé par un blanc plus large qu'une lettre."
+  },
+  "space_gap_min": {
+   "definition": "lecteurs : plus petit blanc dû à une espace (numéro et mot, préfixe et empreinte, empreinte en 4+4), en hauteurs d'encre",
+   "par": "echantillon",
+   "generateurs": [
+    "haller.synth"
+   ],
+   "reel": null,
+   "plage": [
+    0,
+    4.0
+   ],
+   "part_hors_plage_max": 0.0,
+   "requis": false,
+   "justification": "Descriptif : une espace étroite (numéro collé au mot) existe dans le réel et ne coupe pas un mot ; la mesure par colonnes sous-estime les espaces des écritures penchées (planche du 21/11)."
+  },
+  "pente_ecriture_deg": {
+   "definition": "pente de l'écriture (cisaillement), degrés, en valeur absolue",
+   "par": "page",
+   "generateurs": [
+    "gen_univ",
+    "gen_det",
+    "composer"
+   ],
+   "transformation": "abs",
+   "reel": null,
+   "plage": [
+    0,
+    25
+   ],
+   "part_hors_plage_max": 0.0,
+   "rares": [
+    {
+     "seuil": 15,
+     "part_max": 0.03
+    }
+   ],
+   "justification": "Les écritures penchées dépassent rarement 15-20° ; au-delà de 25° l'écriture n'est plus naturelle."
+  },
+  "slant_deg": {
+   "definition": "pente de l'écriture (cisaillement), degrés, en valeur absolue",
+   "par": "echantillon",
+   "generateurs": [
+    "haller.synth"
+   ],
+   "transformation": "abs",
+   "reel": null,
+   "plage": [
+    0,
+    25
+   ],
+   "part_hors_plage_max": 0.0,
+   "rares": [
+    {
+     "seuil": 15,
+     "part_max": 0.03
+    }
+   ],
+   "justification": "Les écritures penchées dépassent rarement 15-20° ; au-delà de 25° l'écriture n'est plus naturelle."
+  },
+  "esp_lettres_tire_h": {
+   "definition": "espacement moyen tiré entre lettres EMNIST (gen_det.Main.esp), hauteurs de lettre",
+   "par": "page",
+   "generateurs": [
+    "gen_univ",
+    "gen_det",
+    "composer"
+   ],
+   "reel": null,
+   "plage": [
+    0.05,
+    0.5
+   ],
+   "justification": "Écart réel médian 0,22 hauteur ; la mesure réalisée (blanc_lettres_max) fait foi, ce tirage la règle."
+  },
+  "spacing": {
+   "definition": "lecteurs, main EMNIST : espacement tiré entre lettres, hauteurs de lettre",
+   "par": "echantillon",
+   "generateurs": [
+    "haller.synth"
+   ],
+   "requis": false,
+   "reel": null,
+   "plage": [
+    0.0,
+    0.4
+   ],
+   "justification": "Même ordre que gen_det (0,1-0,25), réel médian 0,22."
+  },
+  "tracking_em": {
+   "definition": "lecteurs, main police : interlettrage ajouté (em)",
+   "par": "echantillon",
+   "generateurs": [
+    "haller.synth"
+   ],
+   "requis": false,
+   "reel": null,
+   "plage": [
+    -0.05,
+    0.2
+   ],
+   "justification": "Interlettrage modéré ; le blanc réalisé est contrôlé par letter_gap_max."
+  },
+  "inclinaison_deg": {
+   "definition": "écart de l'axe du texte (médiane circulaire des boîtes de mots) au multiple de 90° le plus proche, degrés",
+   "par": "page",
+   "generateurs": [
+    "gen_univ",
+    "gen_det",
+    "composer"
+   ],
+   "reel": {
+    "q05": 0.0,
+    "q50": 0.84,
+    "q95": 5.86,
+    "q99": 10.9,
+    "max": 10.9,
+    "source": "76 photos du jeu réel (mesurer.py, final/mesures_reel.json) ; supports vierges photographiés : q95 9,2°, max 17,2°"
+   },
+   "plage": [
+    0,
+    20
+   ],
+   "part_hors_plage_max": 0.005,
+   "rares": [
+    {
+     "seuil": 10,
+     "part_max": 0.08
+    }
+   ],
+   "justification": "On photographie une seed à l'endroit à quelques degrés près, jamais à 45° (21/11) : réel médiane 0,8°, q95 5,9°, max 10,9° ; 17° au plus sur les photos de supports vierges. Tolérance 0,5 % : mesure sur les boîtes après perspective (20,1° observé pour un tirage à 18°)."
+  },
+  "rotation_deg": {
+   "definition": "rotation tirée par le cadrage (gen_det.cadrage), écart au multiple de 90° le plus proche, degrés",
+   "par": "page",
+   "generateurs": [
+    "gen_univ",
+    "gen_det",
+    "cartes.varier"
+   ],
+   "transformation": "ecart_90",
+   "reel": {
+    "q05": 0.0,
+    "q50": 0.84,
+    "q95": 5.86,
+    "q99": 10.9,
+    "max": 10.9,
+    "source": "76 photos du jeu réel (mesurer.py, final/mesures_reel.json) ; supports vierges photographiés : q95 9,2°, max 17,2°"
+   },
+   "plage": [
+    0,
+    20
+   ],
+   "part_hors_plage_max": 0.0,
+   "rares": [
+    {
+     "seuil": 10,
+     "part_max": 0.08
+    }
+   ],
+   "justification": "Même règle que inclinaison_deg, sur la valeur tirée (avant perspective)."
+  },
+  "retournee": {
+   "type": "proportions",
+   "champ": "defaut",
+   "definition": "défaut de cadrage tiré : part des pages retournées (180°) et en rotation forte",
+   "generateurs": [
+    "gen_univ",
+    "gen_det"
+   ],
+   "valeurs": {
+    "retournee": [
+     0,
+     0.1
+    ],
+    "rotation": [
+     0,
+     0.08
+    ]
+   },
+   "autres_max": 1.0,
+   "reel": {
+    "texte": "réel : 0 % à l'entrée du moteur ; robustesse : 5-10 % de retournées"
+   },
+   "justification": "Les retournées restent minoritaires (5-10 %, choix pour la robustesse) ; la rotation forte est un cas rare."
+  },
+  "h_mot": {
+   "definition": "hauteur médiane des mots / petit côté de l'image",
+   "par": "page",
+   "generateurs": [
+    "gen_univ",
+    "gen_det",
+    "composer"
+   ],
+   "reel": {
+    "q05": 0.036,
+    "q50": 0.056,
+    "q95": 0.096,
+    "q99": 0.106,
+    "max": 0.116,
+    "source": "76 photos du jeu réel ; min 0,019"
+   },
+   "plage": [
+    0.006,
+    0.2
+   ],
+   "part_hors_plage_max": 0.005,
+   "rares": [
+    {
+     "seuil": 0.02,
+     "sens": "<",
+     "part_max": 0.1
+    },
+    {
+     "seuil": 0.13,
+     "part_max": 0.05
+    }
+   ],
+   "justification": "Réel 0,036-0,096 (q05-q95), min 0,019 ; photo prise de loin admise en cas rare, mots plus petits que 0,6 % du petit côté illisibles même pour un humain."
+  },
+  "part_carte": {
+   "definition": "aire du quadrilatère de la carte cible / aire de l'image",
+   "par": "page",
+   "generateurs": [
+    "gen_univ",
+    "gen_det",
+    "composer",
+    "cartes.varier"
+   ],
+   "requis": false,
+   "reel": {
+    "q05": 0.19,
+    "q50": 0.43,
+    "q95": 0.95,
+    "source": "cartes du jeu réel (distributions/README.md) ; photos brutes de cartes 0,13-0,99"
+   },
+   "plage": [
+    0.02,
+    3.0
+   ],
+   "part_hors_plage_max": 0.0,
+   "rares": [
+    {
+     "seuil": 0.1,
+     "sens": "<",
+     "part_max": 0.08
+    },
+    {
+     "seuil": 1.2,
+     "part_max": 0.08
+    }
+   ],
+   "justification": "Réel : carte de 13 % à 99 % de l'image. Au-delà de 1, carte plus grande que le cadre : gros plan trop près (défaut « proche », coupé) ou recadrage d'une scène à plusieurs documents, plausible en cas rare (planches du 21/11) ; une carte en paysage n'est plus coupée des deux côtés sans défaut. Gros plan d'une carte en paysage : jusqu'à ~2,6 (environ 60 % de la carte visible), admis en cas rare."
+  },
+  "perspective": {
+   "definition": "rapport des côtés opposés du quadrilatère de la carte cible, moins 1",
+   "par": "page",
+   "generateurs": [
+    "gen_univ",
+    "gen_det",
+    "composer"
+   ],
+   "requis": false,
+   "reel": {
+    "q05": 0.026,
+    "q50": 0.082,
+    "q95": 0.31,
+    "max": 0.35,
+    "source": "59 photos de cartes imprimées (coins annotés)"
+   },
+   "plage": [
+    0,
+    0.6
+   ],
+   "part_hors_plage_max": 0.0,
+   "rares": [
+    {
+     "seuil": 0.35,
+     "part_max": 0.05
+    }
+   ],
+   "justification": "Réel max 0,35 sur des cartes posées et photographiées à main levée ; au-delà de 0,6 la prise de vue est rasante."
+  },
+  "colonnes": {
+   "definition": "nombre médian de mots par ligne de texte (mesuré sur les boîtes)",
+   "par": "page",
+   "generateurs": [
+    "gen_univ",
+    "gen_det",
+    "composer"
+   ],
+   "reel": {
+    "texte": "réel : 1 : 62 %, 2 : 28 %, 3 : 7 %, 4 : 4 % (max 4)"
+   },
+   "plage": [
+    1,
+    6
+   ],
+   "part_hors_plage_max": 0.005,
+   "rares": [
+    {
+     "seuil": 4,
+     "part_max": 0.06
+    }
+   ],
+   "justification": "Réel au plus 4 colonnes ; grilles de 6 en cas rare (UNIV_MULTI). Tolérance 0,5 % : regroupement des boîtes en lignes approché (page tournée ou en perspective)."
+  },
+  "interligne_h": {
+   "definition": "pas entre lignes écrites / hauteur des mots",
+   "par": "page",
+   "generateurs": [
+    "gen_univ",
+    "gen_det"
+   ],
+   "reel": null,
+   "plage": [
+    1.1,
+    8.0
+   ],
+   "part_hors_plage_max": 0.01,
+   "rares": [
+    {
+     "seuil": 4.0,
+     "part_max": 0.1
+    }
+   ],
+   "justification": "On écrit une seed sur des lignes consécutives ou une sur deux ; une liste étirée sur toute la page reste sous ~4 hauteurs, plus serait une feuille presque vide."
+  },
+  "ecart_numero_mot_h": {
+   "definition": "blanc tiré entre le numéro et le mot, hauteurs de mot",
+   "par": "mot",
+   "generateurs": [
+    "gen_univ",
+    "gen_det"
+   ],
+   "requis": false,
+   "reel": null,
+   "plage": [
+    -0.1,
+    1.7
+   ],
+   "justification": "Numéro collé (−0,08) à nettement séparé (1,6 dans le compositeur)."
+  },
+  "ecart_rature_mot_h": {
+   "definition": "blanc entre un mot barré et le mot réécrit à droite, hauteurs de mot",
+   "par": "mot",
+   "generateurs": [
+    "gen_univ"
+   ],
+   "requis": false,
+   "reel": null,
+   "plage": [
+    0.2,
+    1.0
+   ],
+   "justification": "Le mot réécrit suit le mot barré à une espace près."
+  },
+  "flou_sigma_1024": {
+   "definition": "écart type du flou tiré, px à 1 024 de côté long",
+   "par": "page",
+   "generateurs": [
+    "gen_univ",
+    "gen_det"
+   ],
+   "reel": {
+    "q05": 0.4,
+    "q50": 1.08,
+    "q95": 3.39,
+    "q99": 4.0,
+    "max": 4.0,
+    "source": "76 photos réelles (estimateur flou_photo, plafonné à 4)"
+   },
+   "plage": [
+    0.1,
+    4.5
+   ],
+   "part_hors_plage_max": 0.0,
+   "rares": [
+    {
+     "seuil": 2.5,
+     "part_max": 0.15
+    }
+   ],
+   "justification": "Réel médiane 1,1, queue floue jusqu'à 4 (photos prises au Pi)."
+  },
+  "bruit_sigma": {
+   "definition": "écart type du bruit tiré (niveaux de gris, photo pleine)",
+   "par": "page",
+   "generateurs": [
+    "gen_univ",
+    "gen_det"
+   ],
+   "reel": {
+    "q50": 0.5,
+    "q95": 1.33,
+    "source": "bruit mesuré à 1 024 px (Immerkær), échelle différente"
+   },
+   "plage": [
+    0.5,
+    6.0
+   ],
+   "part_hors_plage_max": 0.0,
+   "justification": "Bruit de capteur de téléphone ou de Pi, réduit par la mise à l'échelle."
+  },
+  "exposition_gain": {
+   "definition": "gain global d'exposition",
+   "par": "page",
+   "generateurs": [
+    "gen_univ",
+    "gen_det"
+   ],
+   "reel": {
+    "q05": 110,
+    "q50": 152,
+    "q95": 222,
+    "source": "luminance de la feuille réelle"
+   },
+   "plage": [
+    0.5,
+    1.0
+   ],
+   "justification": "Feuille réelle de 97 à 240 de luminance."
+  },
+  "eclairage_gradient": {
+   "definition": "pente du dégradé de lumière (max |gx|, |gy|)",
+   "par": "page",
+   "generateurs": [
+    "gen_univ",
+    "gen_det"
+   ],
+   "reel": null,
+   "plage": [
+    0,
+    1.7
+   ],
+   "justification": "Éclairage latéral fort réservé au défaut « éclairage »."
+  },
+  "jpeg_qualite": {
+   "definition": "qualité JPEG du banc",
+   "par": "page",
+   "generateurs": [
+    "gen_univ",
+    "gen_det",
+    "composer"
+   ],
+   "requis": false,
+   "reel": null,
+   "plage": [
+    60,
+    100
+   ],
+   "justification": "Photos de téléphone 70-95."
+  },
+  "lumiere_temperature": {
+   "definition": "température de couleur appliquée (lumiere.augmenter), K",
+   "par": "page",
+   "generateurs": [
+    "composer",
+    "cartes.varier"
+   ],
+   "requis": false,
+   "reel": {
+    "q05": 4541,
+    "q50": 5541,
+    "q95": 6783,
+    "max": 6949,
+    "source": "76 photos réelles ; supports 2 409-9 075 K"
+   },
+   "plage": [
+    2500,
+    9500
+   ],
+   "rares": [
+    {
+     "seuil": 3500,
+     "sens": "<",
+     "part_max": 0.15,
+     "gravite": "avertissement"
+    }
+   ],
+   "justification": "Lumière du jour et ampoules : réel 4 100-7 000 K, supports bruts 2 400-9 100 K. Planche du 21/11 : 2 700 K = photo orangée sous ampoule, plausible ; seule la proportion est surveillée (avertissement)."
+  },
+  "style": {
+   "type": "proportions",
+   "definition": "style d'écriture de la page",
+   "generateurs": [
+    "gen_univ",
+    "gen_det",
+    "composer"
+   ],
+   "gravite": "avertissement",
+   "valeurs": {
+    "capitales": [
+     0.4,
+     0.72
+    ],
+    "minuscules": [
+     0.12,
+     0.4
+    ],
+    "cursive": [
+     0.04,
+     0.3
+    ]
+   },
+   "autres_max": 0.0,
+   "reel": {
+    "texte": "capitales 54 %, minuscules 24 %, cursive 9 %, autre 13 %"
+   },
+   "justification": "Proportions réelles élargies ; la cursive est surreprésentée (15 %) par choix de robustesse."
+  },
+  "n": {
+   "type": "proportions",
+   "definition": "longueur de la seed",
+   "generateurs": [
+    "gen_univ",
+    "gen_det",
+    "composer"
+   ],
+   "gravite": "avertissement",
+   "valeurs": {
+    "12": [
+     0.5,
+     0.85
+    ],
+    "24": [
+     0.15,
+     0.45
+    ]
+   },
+   "autres_max": 0.12,
+   "reel": {
+    "texte": "12 : 74 %, 24 : 26 %"
+   },
+   "justification": "Réel 12 et 24 mots seulement ; 15, 18, 21 en cas rare."
+  },
+  "format": {
+   "type": "proportions",
+   "definition": "format du document (gen_univ)",
+   "generateurs": [
+    "gen_univ"
+   ],
+   "gravite": "avertissement",
+   "valeurs": {
+    "seedsigner": [
+     0.2,
+     0.45
+    ],
+    "carte": [
+     0.08,
+     0.35
+    ],
+    "liste": [
+     0.35,
+     0.7
+    ]
+   },
+   "autres_max": 0.0,
+   "reel": {
+    "texte": "cartes SeedSigner 32 %, autres cartes 12 %, listes 57 %"
+   },
+   "justification": "Proportions réelles, autres cartes un peu plus fréquentes pour couvrir les modèles."
+  },
+  "numeros_ecrits": {
+   "type": "proportions",
+   "definition": "listes avec numéros écrits",
+   "generateurs": [
+    "gen_univ",
+    "gen_det",
+    "composer"
+   ],
+   "filtre": {
+    "format": [
+     "liste"
+    ]
+   },
+   "gravite": "avertissement",
+   "valeurs": {
+    "True": [
+     0.3,
+     0.7
+    ]
+   },
+   "autres_max": 1.0,
+   "reel": {
+    "texte": "44 % des listes réelles"
+   },
+   "justification": "Réel 44 %."
+  },
+  "encre": {
+   "type": "proportions",
+   "definition": "type d'encre",
+   "generateurs": [
+    "gen_univ",
+    "composer"
+   ],
+   "gravite": "avertissement",
+   "valeurs": {
+    "bille": [
+     0.4,
+     0.8
+    ],
+    "feutre": [
+     0.1,
+     0.4
+    ],
+    "crayon": [
+     0.05,
+     0.25
+    ]
+   },
+   "autres_max": 0.0,
+   "reel": {
+    "texte": "stylo bille dominant (photos réelles)"
+   },
+   "justification": "L'écriture réelle dominante est au stylo bille."
+  },
+  "occultation": {
+   "type": "proportions",
+   "definition": "page avec occultant (doigt, stylo, reflet, ombre dure)",
+   "generateurs": [
+    "gen_univ",
+    "composer"
+   ],
+   "gravite": "avertissement",
+   "valeurs": {
+    "True": [
+     0.0,
+     0.5
+    ]
+   },
+   "autres_max": 1.0,
+   "reel": {
+    "texte": "cartes : doigts sur ~50 % des photos ; listes : 0 %"
+   },
+   "justification": "Occultants fréquents sur les cartes tenues en main, rares sur les listes."
+  },
+  "part_mots_caches": {
+   "definition": "part des mots de la page cachés (≥ 90 %)",
+   "par": "page",
+   "generateurs": [
+    "gen_univ",
+    "gen_det",
+    "composer"
+   ],
+   "reel": null,
+   "plage": [
+    0,
+    1
+   ],
+   "rares": [
+    {
+     "seuil": 0.5,
+     "part_max": 0.05
+    }
+   ],
+   "justification": "Une photo où la moitié de la seed est cachée est un cas rare (défauts de cadrage)."
+  },
+  "ink_ratio": {
+   "definition": "lecteurs : niveau de l'encre / niveau du papier (1 = invisible)",
+   "par": "echantillon",
+   "generateurs": [
+    "haller.synth"
+   ],
+   "reel": null,
+   "plage": [
+    0.03,
+    0.8
+   ],
+   "rares": [
+    {
+     "seuil": 0.5,
+     "part_max": 0.15
+    }
+   ],
+   "justification": "Stylo (0,05-0,35) ou crayon pâle (0,35-0,75), lisible par un humain."
+  },
+  "blur_rel": {
+   "definition": "lecteurs : flou rapporté à la taille de l'écriture",
+   "par": "echantillon",
+   "generateurs": [
+    "haller.synth"
+   ],
+   "reel": null,
+   "plage": [
+    0,
+    0.2
+   ],
+   "rares": [
+    {
+     "seuil": 0.05,
+     "part_max": 0.3
+    }
+   ],
+   "justification": "Du net au flou fort encore lisible."
+  },
+  "noise_sigma": {
+   "definition": "lecteurs : bruit de capteur (niveaux de gris)",
+   "par": "echantillon",
+   "generateurs": [
+    "haller.synth"
+   ],
+   "reel": null,
+   "plage": [
+    0,
+    10
+   ],
+   "justification": "Capteur de Pi ou de téléphone."
+  },
+  "jpeg_quality": {
+   "definition": "lecteurs : qualité JPEG (100 = sans compression)",
+   "par": "echantillon",
+   "generateurs": [
+    "haller.synth"
+   ],
+   "reel": null,
+   "plage": [
+    30,
+    100
+   ],
+   "rares": [
+    {
+     "seuil": 50,
+     "sens": "<",
+     "part_max": 0.25
+    }
+   ],
+   "justification": "Compression du Pi et des envois web."
+  },
+  "warp_rel": {
+   "definition": "lecteurs : amplitude de la déformation élastique / taille",
+   "par": "echantillon",
+   "generateurs": [
+    "haller.synth"
+   ],
+   "reel": null,
+   "plage": [
+    0,
+    0.07
+   ],
+   "justification": "Tremblement de la main."
+  },
+  "text_kind": {
+   "type": "proportions",
+   "definition": "lecteurs : mot ou empreinte",
+   "generateurs": [
+    "haller.synth"
+   ],
+   "gravite": "info",
+   "valeurs": {},
+   "autres_max": 1.0,
+   "reel": null,
+   "justification": "Selon --hex-share."
+  },
+  "quart": {
+   "type": "proportions",
+   "definition": "quart de tour de la carte dans la photo (0, 90, 180, 270°)",
+   "generateurs": [
+    "cartes.varier"
+   ],
+   "gravite": "bloquant",
+   "valeurs": {
+    "0": [
+     0.65,
+     0.92
+    ],
+    "180": [
+     0,
+     0.1
+    ]
+   },
+   "autres_max": 0.25,
+   "reel": {
+    "texte": "photos brutes de cartes : 56 % au quart de tour (téléphone en paysage) ; entrée du moteur redressée"
+   },
+   "justification": "Majorité droite, quarts de tour (téléphone en paysage) en proportion, retournées 5-10 %."
+  },
+  "trapeze": {
+   "definition": "variantes de cartes : amplitude du trapèze de perspective",
+   "par": "page",
+   "generateurs": [
+    "cartes.varier"
+   ],
+   "reel": {
+    "q50": 0.082,
+    "q95": 0.31,
+    "max": 0.35,
+    "source": "perspective des cartes imprimées"
+   },
+   "plage": [
+    0,
+    0.2
+   ],
+   "justification": "Perspective modérée ajoutée à une carte déjà photographiée (sa propre perspective s'y ajoute)."
+  },
+  "taille_mot_rel_capitales": {
+   "definition": "hauteur de chaque mot (petit côté de sa boîte) / hauteur médiane des mots de la page",
+   "par": "mot",
+   "generateurs": [
+    "gen_univ",
+    "gen_det",
+    "composer"
+   ],
+   "reel": {
+    "q01": 0.66,
+    "q50": 1.0,
+    "q99": 1.77,
+    "min": 0.66,
+    "max": 4.32,
+    "source": "602 mots réels en capitales : 0.0% sous 0,6, min 0.66"
+   },
+   "plage": [
+    0.45,
+    4.5
+   ],
+   "part_hors_plage_max": 0.005,
+   "rares": [
+    {
+     "seuil": 0.6,
+     "sens": "<",
+     "part_max": 0.015
+    }
+   ],
+   "justification": "On écrit un mot long un peu plus petit, jamais au tiers de la taille des autres : réel min 0,48, 0,7 % sous 0,6 (planche du 21/11 : mots réduits à 0,09-0,3 dans des colonnes étroites). Par style : les minuscules sans hampes d'une écriture liée sont naturellement plus petites que les mots à hampes (réel capitales : 0.0% sous 0,6).",
+   "champ": "taille_mot_rel",
+   "filtre": {
+    "style": [
+     "capitales"
+    ]
+   }
+  },
+  "taille_mot_rel_minuscules": {
+   "definition": "hauteur de chaque mot (petit côté de sa boîte) / hauteur médiane des mots de la page",
+   "par": "mot",
+   "generateurs": [
+    "gen_univ",
+    "gen_det",
+    "composer"
+   ],
+   "reel": {
+    "q01": 0.66,
+    "q50": 1.0,
+    "q99": 1.77,
+    "min": 0.48,
+    "max": 4.32,
+    "source": "252 mots réels en minuscules : 1.2% sous 0,6, min 0.48"
+   },
+   "plage": [
+    0.45,
+    4.5
+   ],
+   "part_hors_plage_max": 0.005,
+   "rares": [
+    {
+     "seuil": 0.6,
+     "sens": "<",
+     "part_max": 0.03
+    }
+   ],
+   "justification": "On écrit un mot long un peu plus petit, jamais au tiers de la taille des autres : réel min 0,48, 0,7 % sous 0,6 (planche du 21/11 : mots réduits à 0,09-0,3 dans des colonnes étroites). Par style : les minuscules sans hampes d'une écriture liée sont naturellement plus petites que les mots à hampes (réel minuscules : 1.2% sous 0,6).",
+   "champ": "taille_mot_rel",
+   "filtre": {
+    "style": [
+     "minuscules"
+    ]
+   }
+  },
+  "taille_mot_rel_cursive": {
+   "definition": "hauteur de chaque mot (petit côté de sa boîte) / hauteur médiane des mots de la page",
+   "par": "mot",
+   "generateurs": [
+    "gen_univ",
+    "gen_det",
+    "composer"
+   ],
+   "reel": {
+    "q01": 0.66,
+    "q50": 1.0,
+    "q99": 1.77,
+    "min": 0.53,
+    "max": 4.32,
+    "source": "120 mots réels en cursive : 4.2% sous 0,6, min 0.53"
+   },
+   "plage": [
+    0.45,
+    4.5
+   ],
+   "part_hors_plage_max": 0.005,
+   "rares": [
+    {
+     "seuil": 0.6,
+     "sens": "<",
+     "part_max": 0.07
+    }
+   ],
+   "justification": "On écrit un mot long un peu plus petit, jamais au tiers de la taille des autres : réel min 0,48, 0,7 % sous 0,6 (planche du 21/11 : mots réduits à 0,09-0,3 dans des colonnes étroites). Par style : les minuscules sans hampes d'une écriture liée sont naturellement plus petites que les mots à hampes (réel cursive : 4.2% sous 0,6).",
+   "champ": "taille_mot_rel",
+   "filtre": {
+    "style": [
+     "cursive"
+    ]
+   }
+  },
+  "card": {
+   "type": "proportions",
+   "definition": "lecteurs : mot écrit sur une rangée de carte de seed (numéro et ligne imprimés, rangées voisines), découpé comme par le détecteur",
+   "generateurs": [
+    "haller.synth"
+   ],
+   "gravite": "info",
+   "valeurs": {},
+   "autres_max": 1.0,
+   "reel": null,
+   "requis": false,
+   "justification": "Selon --card-share : la carte SeedSigner est le support principal des utilisateurs de SeedSigner."
+  },
+  "card_ratio": {
+   "definition": "lecteurs, carte : hauteur d'encre du mot / interligne de la carte",
+   "par": "echantillon",
+   "generateurs": [
+    "haller.synth"
+   ],
+   "requis": false,
+   "reel": {
+    "q50": 1.04,
+    "q10": 0.83,
+    "q90": 1.56,
+    "source": "photos réelles de cartes SeedSigner (boîtes annotées, interligne.py, 204 mots capitales) ; boîtes annotées un peu larges : listes réelles 0,64 contre 0,62 simulées ; gen_univ UNIV_REEL 0,91"
+   },
+   "plage": [
+    0.6,
+    1.3
+   ],
+   "part_hors_plage_max": 0.0,
+   "justification": "Sur une carte SeedSigner on écrit à la hauteur de la rangée : le mot touche presque les rangées voisines."
+  },
+  "card_line_darkness": {
+   "definition": "lecteurs, carte : niveau de gris de la ligne imprimée (part du papier ; 0 noir)",
+   "par": "echantillon",
+   "generateurs": [
+    "haller.synth"
+   ],
+   "requis": false,
+   "reel": null,
+   "plage": [
+    0.15,
+    0.85
+   ],
+   "part_hors_plage_max": 0.0,
+   "justification": "Lignes imprimées grises, plus ou moins contrastées selon l'impression et l'éclairage."
+  },
+  "card_line_tilt_deg": {
+   "definition": "lecteurs, carte : angle entre la ligne imprimée et l'écriture, degrés, en valeur absolue",
+   "par": "echantillon",
+   "generateurs": [
+    "haller.synth"
+   ],
+   "transformation": "abs",
+   "requis": false,
+   "reel": null,
+   "plage": [
+    0,
+    6
+   ],
+   "part_hors_plage_max": 0.005,
+   "rares": [
+    {
+     "seuil": 3,
+     "part_max": 0.03
+    }
+   ],
+   "justification": "On écrit le long de la ligne ; écart résiduel de quelques degrés (écriture qui monte, perspective non corrigée par la boîte)."
+  }
+ }
+}

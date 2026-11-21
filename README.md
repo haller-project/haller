@@ -30,7 +30,7 @@ words, then the BIP39 checksum chooses the seed. Weights are quantized to
 |---|---|---|---|
 | `haller-1-capitals.npz` | capitals | reads every photo | `2e9275f1acd0d347437e856160430e96a283ec484a48ab96a2ea1ca91531fe14` |
 | `haller-1-lowercase.npz` | lowercase and cursive | reads again the photos whose seed is not valid, alone and blended with the capitals expert | `5d340b354ced032992cb474f03bcc0b063f24ee8e1446d2953203b778652e509` |
-| `haller-1-detector.npz` | word detector | finds the words, their line numbers and the cards on every photo | `8ddddf19ee0088e8dcfe71ba12377167feeb6a626cd6edb17b0bed3b5f69fc5b` |
+| `haller-1-detector.npz` | word detector | finds the words, their line numbers and the cards on every photo | `b33f6d02f1af87a4aff1cecc73368cc2230c2fa68d0eda977a112df437d501cc` |
 | `haller-1-fingerprint.npz` | fingerprint | reads the master key fingerprint written under the words; a seed is verified only when it matches | `b92cca552dc0a718d309a98b3e5f7ed6f20ee0be32f92aec8df1804d809de454` |
 
 The fingerprint expert has the architecture of the word experts, fine-tuned
@@ -300,16 +300,17 @@ their reference vectors:
 
 ```bash
 python -m haller.train_detector detector.npz PAGES_1.npz ... GNHK_PAGES.npz --val PAGES_VAL.npz --epochs 10 --fast
-python -m haller.detector detector.npz PAGES_VAL.npz detector_q.npz --count 400   # or --ranges Q.npz
+python -m haller.detector detector.npz PAGES_VAL.npz detector_q.npz --count 400   # --per-channel, --ranges R.npz
 python -m haller.detector_export detector_q.npz OUT_DIR --name haller-1-detector
 ```
 
 From the quantized model of Haller-1, `haller.detector_export` writes
 `haller-1-detector.npz` and `haller-1-detector-vectors.json` byte for byte as
-shipped in SeedSigner. The training pages of the shipped detector were written
-by a generator and a compositor (simulated handwriting on photos of real blank
-supports and cards) kept frozen in the recipe, and by `haller.detector_gnhk`
-(GNHK pages with their word boxes); `haller.detector_pages` writes simulated
+shipped in SeedSigner (quantized per channel, `--per-channel`). The training
+pages of the shipped detector were written by a generator and a compositor
+(simulated handwriting on photos of real blank supports and cards), checked
+page by page by a variety audit and kept frozen in the recipe, and by
+`haller.detector_gnhk` (GNHK pages with their word boxes); `haller.detector_pages` writes simulated
 pages of the earlier 8-map detector (9 target channels, still read by the
 training). The exact recipe of the detector of Haller-1 is
 [`recipes/haller-1-detector/README.md`](recipes/haller-1-detector/README.md).

@@ -39,6 +39,7 @@ ICI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ICI)
 import gen_det as D  # noqa: E402
 from gen_det import G, mnemonique  # noqa: E402
+from gen_det import J, JR  # noqa: E402  (journal des facteurs tirés, sans tirage : docs/variete.md)
 
 DEFAUTS = D.DEFAUTS
 POIDS_DEFAUTS = list(D.POIDS_DEFAUTS)
@@ -111,6 +112,8 @@ class Encre:
             self.niveau, self.epais = rng.uniform(5, 40), int(rng.choice([1, 1, 2]))
         else:
             self.niveau, self.epais = rng.uniform(85, 150), int(rng.choice([-1, 0, 0]))
+        J.noter("encre_type", self.kind)
+        J.noter("encre_niveau_page", self.niveau)
 
     def poser(self, page, m, x, y, rng):
         m = np.asarray(m, np.float32) / 255
@@ -134,18 +137,27 @@ def poser(page, m, x, y, encre, rng, objets, info):
     ys, xs = np.nonzero(np.asarray(m) < 128)
     if len(xs) == 0:
         return None
+    if info.get("classe") == "mot":
+        JR.noter_mot(m)
     x0, x1, y0, y1 = x + xs.min(), x + xs.max() + 1, y + ys.min(), y + ys.max() + 1
     o = dict(info, quad=[(x0, y0), (x1, y0), (x1, y1), (x0, y1)])
     objets.append(o)
     return o
 
 
+MOT_REDUIT_MIN = 0.6   # réduction maximale de la hauteur d'un mot trop long (docs/variete.md)
+INTERLIGNE_MAX = 4.0   # pas entre lignes écrites, au plus 4 hauteurs de mot (docs/variete.md)
+
+
 def ecrire_mot(main, texte, haut, rng, maxw=None):
     m, base = main.composer(texte.upper() if main.font is None else texte, haut, rng, main.pente + rng.normal(0, 1))
     if maxw and m.shape[1] > maxw:
+        # mot trop long pour sa place : écrit plus petit, au plus 0,6 fois la hauteur (réel : taille relative des mots
+        # d'une page >= 0,48, 0,7 % sous 0,6), puis plus serré (lettres plus étroites)
         f = maxw / m.shape[1]
-        m = np.asarray(Image.fromarray(m).resize((max(4, int(m.shape[1] * f)), max(5, int(m.shape[0] * f)))))
-        base = int(base * f)
+        fh = max(f, MOT_REDUIT_MIN)
+        m = np.asarray(Image.fromarray(m).resize((max(4, int(m.shape[1] * f)), max(5, int(m.shape[0] * fh)))))
+        base = int(base * fh)
     return m, base
 
 
@@ -199,16 +211,23 @@ def barrer(m, rng):
     return np.asarray(im)
 
 
-def alterer(m, kind, haut, rng):
-    """(image dessinée, image de la boîte) d'un mot pâle en partie, au stylo qui saute ou coupé d'un grand blanc."""
+def alterer(m, kind, haut, rng, detachees=True):
+    """(image dessinée, image de la boîte) d'un mot pâle en partie, au stylo qui saute ou aux lettres espacées."""
     m = np.asarray(m, np.float32)
     h, w = m.shape
     if kind == "blanc":
         ink = (255 - m).sum(0)
         lo, hi = int(0.3 * w), max(int(0.3 * w) + 1, int(0.7 * w))
         cut = lo + int(np.argmin(ink[lo:hi]))
-        gap = np.full((h, int(haut * rng.uniform(1.0, 2.2))), 255, np.float32)
+        # blanc réaliste dans un mot (retour du 21/11), jamais plus large qu'entre deux mots : capitales
+        # détachées jusqu'à ~0,5 hauteur de lettre ; écriture liée ou minuscules, simple lever de plume (0,05-0,15)
+        # (ancienne plage 1,0-2,2 : mot coupé en deux, irréaliste)
+        e = rng.uniform(0.25, 0.5) if detachees else rng.uniform(0.05, 0.15)
+        J.ajouter("blanc_altere_h", e)
+        gap = np.full((h, max(1, int(haut * e))), 255, np.float32)
         m = np.concatenate([m[:, :cut], gap, m[:, cut:]], 1)
+        # le blanc inséré s'ajoute à l'écart naturel : total plafonné à 0,75 hauteur (docs/variete.md)
+        m = D.limiter_blancs(m, 0.75 if detachees else D.BLANC_MAX).astype(np.float32)
         return m, m
     box = m.copy()
     if kind == "pale":
@@ -232,11 +251,12 @@ def poser_mot(a, main, mot, haut, x, yb, encre, rng, objets, info, maxw=None, al
     if rot:
         m = np.asarray(Image.fromarray(m).rotate(rot, expand=False, fillcolor=255))
     if alt in ("pale", "saut", "blanc"):
-        m, box = alterer(m, alt, haut, rng)
+        m, box = alterer(m, alt, haut, rng, detachees=getattr(main, "style", "") == "capitales")
         encre.poser(a, m, x, int(yb - base), rng)
         ys, xs = np.nonzero(box < 128)
         if len(xs) == 0:
             return None
+        JR.noter_mot(m)
         y = int(yb - base)
         o = dict(info, alteration=alt, quad=[(x + xs.min(), y + ys.min()), (x + xs.max() + 1, y + ys.min()),
                                               (x + xs.max() + 1, y + ys.max() + 1), (x + xs.min(), y + ys.max() + 1)])
@@ -249,7 +269,12 @@ def poser_mot(a, main, mot, haut, x, yb, encre, rng, objets, info, maxw=None, al
         mf, bf = ecrire_mot(main, faux, haut * rng.uniform(0.85, 1.0), rng)
         mf = barrer(mf, rng)
         if alt == "rature_droite":
-            gap = int(haut * rng.uniform(0.3, 0.9))
+            g = rng.uniform(0.3, 0.9)
+            J.ajouter("ecart_rature_mot_h", g)
+            gap = int(haut * g)
+            if maxw and 1.3 * maxw / (mf.shape[1] + gap + m.shape[1]) < MOT_REDUIT_MIN:
+                alt = "rature_dessus"   # pas la place à droite sans écrire minuscule : réécrit au-dessus (docs/variete.md)
+        if alt == "rature_droite":
             if maxw and mf.shape[1] + gap + m.shape[1] > 1.3 * maxw:
                 f = 1.3 * maxw / (mf.shape[1] + gap + m.shape[1])
                 mf = np.asarray(Image.fromarray(mf).resize((max(4, int(mf.shape[1] * f)), max(5, int(mf.shape[0] * f)))))
@@ -670,6 +695,10 @@ def ecrire_liste(mots, main, encre, rng, kind, ordre=None, ncol=None, numeros=No
             haut = pas_ecr * rng.uniform(0.6, 0.85)
         haut = min(haut, 0.92 * (W - 0.1 * W) / (ncol * 4.8))   # le mot moyen tient dans sa colonne
     haut = max(haut, 14)
+    if pas_ecr > INTERLIGNE_MAX * haut:   # peu de rangées étirées sur la page : lignes resserrées (docs/variete.md)
+        pas_ecr = pas * max(1, int(INTERLIGNE_MAX * haut / pas)) if pas else INTERLIGNE_MAX * haut
+    J.noter("interligne_h", pas_ecr / haut)
+    J.noter("colonnes_tirees", ncol)
     xg = (inf["marge"] + rng.uniform(0.01, 0.04) * W) if inf["marge"] else rng.uniform(0.05, 0.14) * W
     largeur_col = (W - xg - 0.02 * W) / ncol
     fmt = str(rng.choice(["{}.", "{})", "{}", "{} -", "#{}", "{}:"], p=[0.35, 0.15, 0.25, 0.08, 0.07, 0.1]))
@@ -705,7 +734,9 @@ def ecrire_liste(mots, main, encre, rng, kind, ordre=None, ncol=None, numeros=No
                 mn, bn = main.composer(fmt.format(k + 1), haut, rng, main.pente)
             on = poser(a, mn, x, int(yb - bn), encre, rng, objets, dict(classe="numero", k=k, valeur=k + 1,
                                                                          rang=row, col=col))
-            x += mn.shape[1] + int(haut * (rng.uniform(-0.08, 0.12) if colle else rng.uniform(0.25, 0.7)))
+            e = rng.uniform(-0.08, 0.12) if colle else rng.uniform(0.25, 0.7)
+            J.ajouter("ecart_numero_mot_h", e)
+            x += mn.shape[1] + int(haut * e)
         if serre:
             maxw_mot = max(0.98 * W - x, 2.5 * haut)
         else:
@@ -720,6 +751,9 @@ def ecrire_liste(mots, main, encre, rng, kind, ordre=None, ncol=None, numeros=No
         a = estamper(a, inf["ton"])
     info = dict(colonnes=ncol, numeros=numeros, ordre=ordre, papier=kind, numeros_traces=bool(trace),
                 serre=bool(serre), colle=bool(colle))
+    for k_, v_ in info.items():
+        if k_ != "papier":
+            J.noter("liste_" + k_, v_)
     return a, objets, liens, info
 
 
@@ -1231,19 +1265,52 @@ def composer_scene(pieces, rng, jointes):
             x += s[1] * rng.uniform(1.0, 1.08)
         angs = [float(rng.normal(0, 4)) for _ in pieces]
     ob, li, cartes = [], [], []
+    polys, cibles_ob = [], []
     for (a, o, l_, c, cible), (ox, oy), ang in zip(pieces, pos, angs):
         f = coller(scene, a, ox, oy, ang, rng)
+        ha, wa = a.shape
+        polys.append(f([(0, 0), (wa, 0), (wa, ha), (0, ha)]))
         for x in o:
             x["quad"] = f(x["quad"])
             x["autre"] = not cible
         if cible:
             ob += o
             li += l_
+            cibles_ob.append((len(polys) - 1, o))
         else:
             ob += [dict(x, ignorer=True) for x in o]
         for cc in c:
             cartes.append(dict(cc, coins=f(cc["coins"]), cible=cible))
+    if not jointes:
+        marquer_recouverts(scene.shape, polys, cibles_ob)
     return scene, ob, li, cartes
+
+
+def marquer_recouverts(forme, polys, cibles_ob, red=4):
+    """Mots du document cible recouverts par un document posé après lui : caché (>= 90 %) ou partiel (> 8 %)
+    (docs/variete.md : la vérité marquait visibles des mots sous une autre feuille). Sans tirage."""
+    H, W = forme[0] // red + 1, forme[1] // red + 1
+    for k, objets in cibles_ob:
+        dessus = polys[k + 1:]
+        if not dessus:
+            continue
+        m = Image.new("L", (W, H), 0)
+        d = ImageDraw.Draw(m)
+        for p in dessus:
+            d.polygon([(x / red, y / red) for x, y in p], fill=255)
+        m = np.asarray(m) > 0
+        for o in objets:
+            q = Image.new("L", (W, H), 0)
+            ImageDraw.Draw(q).polygon([(x / red, y / red) for x, y in o["quad"]], fill=255)
+            q = np.asarray(q) > 0
+            n = q.sum()
+            if n == 0:
+                continue
+            part = float((q & m).sum() / n)
+            if part >= 0.9:
+                o["cache"] = True
+            elif part > 0.08:
+                o["partiel"] = True
 
 
 # ---------- cibles ----------
@@ -1286,6 +1353,41 @@ def cibles_univ(v, scale_out):
     return y
 
 
+# UNIV_CADRE=p (nuit du 21/11/2026) : part p des pages prises avec un appareil d'un autre format que 3:4, puis
+# réduites à l'entrée du réseau comme detector.reduce_photo (rapport gardé, bandes du gris médian). Rapports
+# largeur / hauteur tirés parmi ceux des 68 photos reçues par le site au 21/11 qui ne sont pas en 3:4 portrait
+# (orientation EXIF appliquée) : 3:4 portrait 32, portrait plus allongé 13, presque carré 6, paysage 17.
+P_CADRE = float(os.environ.get("UNIV_CADRE", 0))
+RAPPORTS_CADRE = (0.46, 0.47, 0.5, 0.56, 0.59, 0.61, 0.65, 0.65, 0.67, 0.67, 0.67, 0.67, 0.69, 0.81, 0.86, 0.89,
+                  0.9, 1.0, 1.01, 1.04, 1.07, 1.07, 1.19, 1.27, 1.3, 1.36, 1.41, 1.5, 1.5, 1.5, 1.5, 1.56, 1.8, 2.06,
+                  2.09, 2.17)
+
+
+def generer_cadre(rng, rng_c, ex, par, fonts, test, scale):
+    """Page photographiée dans un cadre de rapport r (RAPPORTS_CADRE, hauteur 2592), ramenée dans le cadre 3:4
+    (facteur k, centrée, bandes du gris médian) ; boîtes et coins ramenés dans le cadre 3:4."""
+    r = float(rng_c.choice(RAPPORTS_CADRE))
+    W, H = D.FRAME
+    Wf, Hf = r * H, float(H)
+    k = min(W / Wf, H / Hf)
+    D.FRAME, D.AJUSTER_LARGEUR = (Wf, Hf), True
+    try:
+        img, v = generer(rng, ex, par, fonts, test, scale=scale * k)
+    finally:
+        D.FRAME, D.AJUSTER_LARGEUR = (W, H), False
+    cw, ch = int(round(W * scale)), int(round(H * scale))
+    ox, oy = (cw - img.width) // 2, (ch - img.height) // 2
+    toile = Image.new("L", (cw, ch), int(np.median(np.asarray(img))))
+    toile.paste(img, (ox, oy))
+    f = lambda pts: [(float(x * k + ox / scale), float(y * k + oy / scale)) for x, y in pts]  # noqa: E731
+    for o in v["objets"]:
+        o["quad"] = f(o["quad"])
+    for c in v["cartes"] or []:
+        c["coins"] = f(c["coins"])
+    v["cadre"] = round(r, 3)
+    return toile, v
+
+
 def main():
     mode, sortie, nombre, graine = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4])
     test = "--test" in sys.argv
@@ -1298,22 +1400,37 @@ def main():
         X = np.zeros((nombre, D.NET_SIZE[1], D.NET_SIZE[0]), np.uint8)
         Y = np.zeros((nombre, D.OUT_SIZE[1], D.OUT_SIZE[0], 12), np.uint8)
         meta = []
+        rng_c = np.random.default_rng(graine + 7_000_000)
+        jw = J.Ecrivain(sortie, D.config_journal(graine, nombre, test, "gen_univ"))
         for i in range(nombre):
-            img, v = generer(rng, ex, par, fonts, test, scale=scale)
+            J.ouvrir("gen_univ", i)
+            if P_CADRE and rng_c.random() < P_CADRE:
+                img, v = generer_cadre(rng, rng_c, ex, par, fonts, test, scale)
+            else:
+                img, v = generer(rng, ex, par, fonts, test, scale=scale)
+            jw.ecrire(JR.finir_page(v, D.FRAME))
             X[i] = np.asarray(img.reduce(2))
             Y[i] = cibles_univ(v, D.OUT_SIZE[0] / D.FRAME[0])
             meta.append(dict(style=v["style"], defaut=v["defaut"], format=v["format"], support=v["support"],
-                             n=v["n"]))
+                             n=v["n"], **({"cadre": v["cadre"]} if "cadre" in v else {})))
+        jw.close()
         np.savez_compressed(sortie, x=X, y=Y, meta=json.dumps(meta))
     else:
         os.makedirs(sortie, exist_ok=True)
         verite = {}
+        jw = J.Ecrivain(sortie, D.config_journal(graine, nombre, test, "gen_univ"))
         for i in range(nombre):
+            J.ouvrir("gen_univ", i)
             img, v = generer(rng, ex, par, fonts, test, defaut=opt("--defaut"), style=opt("--style"),
                              fmt=opt("--format"), support=opt("--support"))
             nom = f"u{graine:03d}_{i:04d}.jpg"
-            img.save(os.path.join(sortie, nom), quality=int(rng.integers(70, 95)))
+            q = int(rng.integers(70, 95))
+            J.noter("jpeg_qualite", q)
+            J.noter("image", nom)
+            jw.ecrire(JR.finir_page(v, D.FRAME))
+            img.save(os.path.join(sortie, nom), quality=q)
             verite[nom] = v
+        jw.close()
         json.dump(verite, open(os.path.join(sortie, "verite.json"), "w"), ensure_ascii=False,
                   default=lambda o: o.item() if hasattr(o, "item") else str(o))
 

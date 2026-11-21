@@ -21,9 +21,12 @@ First release.
   maps): words, line numbers, card area, corners and kernels, number-word
   links and partial words; trained on simulated cards and lists, simulated
   handwriting composed on photos of blank supports and cards, and GNHK pages
-  (`recipes/haller-1-detector`); SeedSigner finds the words of every photo
-  with it. It replaced an earlier 8-map detector (`bcda59a2…`), whose recipe
-  is in the history of `recipes/haller-1-detector`.
+  (`recipes/haller-1-detector`), every shard checked by a variety audit;
+  seed 2 of four trainings, quantized per channel; SeedSigner finds the
+  words of every photo with it. It replaced two earlier detectors, an 8-map
+  one (`bcda59a2…`) and an 11-map one trained on shards made before the
+  variety audit (`8ddddf19…`), whose recipes are in the history of
+  `recipes/haller-1-detector`.
 - Fingerprint reader (`haller-1-fingerprint.npz`, architecture of the word
   readers): the capitals expert fine-tuned on synthetic lines of which half
   are master key fingerprints (`recipes/haller-1-fingerprint`); SeedSigner

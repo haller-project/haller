@@ -412,8 +412,9 @@ def placement(wm, hm, W, H, rng):
     """Quadrilatère de la carte dans le fond : orientation, taille, position, perspective modérée (trapèze)."""
     # orientation (décision du 20/11 et mesures réelles, train/detecteur/distributions) : majorité droite,
     # quarts de tour (appareil en paysage) 18 %, retournées 7 % ; inclinaison réelle 0,8° [0-5,9] : écart type 3,5°,
-    # 5 % de fortes inclinaisons jusqu'à 25°
-    incl = rng.uniform(-25, 25) if rng.random() < 0.05 else float(np.clip(rng.normal(0, 3.5), -25, 25))
+    # 5 % de fortes inclinaisons jusqu'à 18° (contrôle de la variété du 21/11, docs/variete.md : réel au plus 10,9°,
+    # supports vierges 17° ; 25° auparavant)
+    incl = rng.uniform(-18, 18) if rng.random() < 0.05 else float(np.clip(rng.normal(0, 3.5), -18, 18))
     rot = float(rng.choice([0, 90, 180, 270], p=[0.75, 0.09, 0.07, 0.09])) + incl
     t = math.radians(rot)
     R = np.array([[math.cos(t), -math.sin(t)], [math.sin(t), math.cos(t)]])
