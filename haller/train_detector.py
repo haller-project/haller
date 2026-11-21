@@ -78,6 +78,15 @@ def augment(x, rng):
     return x.clamp(0, 1)
 
 
+def augment_device(x, gen):
+    """Same augmentation as augment(), random draws made on the device (no host round trip per batch)."""
+    b = x.shape[0]
+    u = torch.rand((3, b, 1, 1, 1), device=x.device, generator=gen, dtype=x.dtype)
+    x = (x - 0.5) * (0.6 + 0.7 * u[0]) + 0.5 + (u[1] * 0.3 - 0.15)
+    x = x + torch.randn(x.shape, device=x.device, generator=gen, dtype=x.dtype) * (u[2] * 0.03)
+    return x.clamp(0, 1)
+
+
 
 def evaluate(model, sets, device):
     """Pixel precision and recall of the word and number kernels, corner peak hit rate, per set."""
@@ -147,7 +156,12 @@ def main():
     a.add_argument("--shards-in-memory", type=int, default=SHARDS_IN_MEMORY)
     a.add_argument("--init", help="exported weights (.npz) to start from")
     a.add_argument("--arch", default="base", help="network variant (haller.detector.ARCHS)")
+    a.add_argument("--fast", action="store_true",
+                   help="GPU-fed loop: shards decompressed ahead by 2 threads, each shard moved once to the device, "
+                        "batches and augmentation drawn on the device, losses summed on the device")
     a = a.parse_args()
+    if a.fast:
+        return main_fast(a)
 
     torch.manual_seed(a.seed)
     rng = np.random.default_rng(a.seed)
@@ -201,6 +215,69 @@ def main():
         np.savez(a.out.replace(".npz", f"_e{epoch}.npz"), **weights)
         np.savez(a.out, **weights)
 
+
+
+def main_fast(a):
+    """Same model, losses, optimizer and schedule as main(); only the feeding of the GPU changes."""
+    from concurrent.futures import ThreadPoolExecutor
+    torch.manual_seed(a.seed)
+    torch.backends.cudnn.benchmark = True
+    rng = np.random.default_rng(a.seed)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    gen = torch.Generator(device=device)
+    gen.manual_seed(a.seed)
+    model = DetNet(a.arch).to(device)
+    print("parameters", sum(p.numel() for p in model.parameters()), flush=True)
+    if a.init:
+        x, _ = load(a.shards[0])
+        initialize(model, dict(np.load(a.init)), torch.from_numpy(x[:96]).to(device).float().unsqueeze(1) / 255)
+        del x
+    val = {}
+    for v in a.val:
+        x, y = load(v)
+        val[v.split("/")[-1]] = (x[:600], y[:600])
+    sizes = [len(json.loads(str(np.load(s)["meta"]))) for s in a.shards]
+    steps = a.epochs * sum(sizes) // a.batch
+    opt = torch.optim.AdamW(model.parameters(), lr=a.lr, weight_decay=1e-4)
+    sched = torch.optim.lr_scheduler.OneCycleLR(opt, a.lr, total_steps=steps + 10, pct_start=0.05)
+    t0 = time.time()
+    pool = ThreadPoolExecutor(2)
+    for epoch in range(1, a.epochs + 1):
+        order = rng.permutation(len(a.shards))
+        futs = [pool.submit(load, a.shards[k]) for k in order[:2]]
+        sums, n = {}, 0
+        for j in range(len(order)):
+            x, y = futs[j].result()
+            if j + 2 < len(order):
+                futs.append(pool.submit(load, a.shards[order[j + 2]]))
+            futs[j] = None
+            xg = torch.from_numpy(x).to(device, non_blocking=True)
+            yg = torch.from_numpy(y).to(device, non_blocking=True)
+            del x, y
+            perm = torch.randperm(len(xg), device=device, generator=gen)
+            for i in range(0, len(perm) - a.batch + 1, a.batch):
+                idx = perm[i:i + a.batch]
+                xb = xg[idx].float().unsqueeze(1) / 255
+                yb = yg[idx]
+                with torch.autocast(device, dtype=torch.bfloat16, enabled=device == "cuda"):
+                    out = model(augment_device(xb, gen))
+                terms = losses(out.float(), yb)
+                loss = sum(terms.values())
+                opt.zero_grad(set_to_none=True)
+                loss.backward()
+                opt.step()
+                sched.step()
+                for k, v in terms.items():
+                    sums[k] = sums.get(k, 0) + v.detach()
+                n += 1
+            del xg, yg
+        res = evaluate(model, val, device)
+        print(f"epoch {epoch}/{a.epochs} " + " ".join(f"{k} {float(v) / n:.4f}" for k, v in sums.items())
+              + f" {time.time() - t0:.0f} s " + json.dumps({k: {m: round(u, 4) for m, u in r.items()}
+                                                             for k, r in res.items()}), flush=True)
+        weights = model.export()
+        np.savez(a.out.replace(".npz", f"_e{epoch}.npz"), **weights)
+        np.savez(a.out, **weights)
 
 
 if __name__ == "__main__":
