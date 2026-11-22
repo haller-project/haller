@@ -19,7 +19,7 @@ any copy of the weights.
 | BIP39 word lists | as distributed with the MIT-licensed reference implementation (`trezor/python-mnemonic`) and `embit` | labels, dictionary decoding, non-target words | `data/bip39_english.txt`, `data/other_words.txt` (accents removed) |
 | SeedSigner | MIT | page detection and normalization code imported at data generation, C library for inference, printed seed card templates | `data/cards/card12.png`, `data/cards/card24.png` (fronts of the 12- and 24-word cards); `recipes/haller-1/evalsim/preprocess.py` (normalization code of the time) |
 | Printed seed card templates of other makers and projects (25 templates, `recipes/haller-1-detector/data/card_templates.json`; 7 under MIT, 18 without a stated license) | each template's own terms (column `license`) | detector: blank templates drawn on simulated pages | no template file; their word boxes (`recipes/haller-1-detector/gen/data/modeles_cartes/cases.json`) and digests |
-| Photos of blank supports and blank printed cards taken for Haller | MIT (datasets of the Haller-1 release) | detector: real backgrounds and real cards under simulated handwriting | as datasets of the release, not in the git history; the printed card designs remain the property of their authors |
+| Photos of blank supports and blank printed cards taken for Haller | MIT (datasets of the Haller-1 release) | detector: real backgrounds and real cards under simulated handwriting | as datasets of the release, not in the git history; exception: the drawings, logos and trademarks of the third-party cards shown remain the property of their holders and are not covered by the MIT License |
 
 Not used by Haller-1: the Kaggle "Handwriting Recognition" names (CC0,
 `haller/names.py`, used only by experiments), and the generated photos of
@@ -27,6 +27,16 @@ the gpt-image-2 datasets published with the release (training data of later
 versions).
 
 ## Attributions
+
+**Third-party card designs in the photos.** The photos of the datasets
+`haller-blank-cards` and `haller-1-detector-inputs` show blank seed backup
+cards of SeedSigner and of other makers and projects. The drawings, logos,
+trademarks and printed designs of these cards remain the property of their
+respective holders and are not covered by the MIT License; each keeps its
+own terms (`recipes/haller-1-detector/data/card_templates.json`, README of
+each dataset). The MIT License covers the photographs, masks, annotations,
+labels and indexes. A holder who wants its design removed can ask, and the
+photos concerned will be withdrawn.
 
 **Files derived from GNHK** keep the CC BY 4.0 License of GNHK, not the MIT
 License of this repository: `recipes/haller-1/data/emuru_c31.npz`,
