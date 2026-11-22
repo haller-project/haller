@@ -5,15 +5,10 @@ the handwritten seed reader of a SeedSigner fork. It is made of four small
 networks, run offline on the device in 16-bit integer arithmetic by
 SeedSigner's C library.
 
-> **Final numbers pending.** Cells marked **TBD** are filled from the
-> evaluation runs of the release, with the exact weights listed below. The
-> development measurements of the README are not final and are not repeated
-> here.
-
 | | |
 |---|---|
 | Version | `haller-1` (git tag of this repository) |
-| Release date | TBD |
+| Release date | weights frozen on 2026-11-21, engine measured on 2026-11-22; published with the tag |
 | Status | proof of concept; not proposed upstream to SeedSigner |
 | License of the weights | MIT, with the notices of [`NOTICE.md`](NOTICE.md) |
 | Recipe | [`recipes/haller-1`](recipes/haller-1/README.md) (word experts), [`recipes/haller-1-detector`](recipes/haller-1-detector/README.md), [`recipes/haller-1-fingerprint`](recipes/haller-1-fingerprint/README.md) |
@@ -34,12 +29,12 @@ the word readers output log-probabilities every 4 input columns, scored
 against the 2,048 English BIP39 words by a dictionary decoder; the detector
 costs about 300 million multiply-accumulates per photo.
 
-**Engine around the networks** (SeedSigner, not part of this release): page
-detection and word cropping (`page.py`), normalization of the ink
-(`preprocess.py`), decoding against the BIP39 list, temperature 2.2 on the
-word scores, BIP39 checksum analysis over the 512 most likely combinations,
-and the confidence rules that decide whether a seed is reported as valid or
-which words are marked uncertain. The numbers below measure the engine with
+**Engine around the networks** (SeedSigner fork, not part of this release):
+words, line numbers and cards found by the detector, lines, columns and order
+(`detector.py`), normalization of the ink (`preprocess.py`), decoding against
+the BIP39 list, temperature 2.2 on the word scores, BIP39 checksum analysis
+over the 512 most likely combinations, fingerprint check, and the trust gauge
+that decides which words are marked uncertain. The numbers below measure the engine with
 these weights; a change in the engine changes them.
 
 ## Intended use
@@ -48,9 +43,10 @@ these weights; a change in the engine changes them.
   official SeedSigner seed card or on a free list (blank or ruled paper, one
   or two columns, numbered or not), from a photo taken by the device camera.
 - On an offline signing device: photos stay in memory, nothing is sent.
-- **The user reviews every word against the paper.** A seed reported as
-  valid can still be wrong (a wrong reading that passes the checksum); the
-  reader is an input aid, not a verifier.
+- **The user reviews every word against the paper** unless the seed is
+  verified: the fingerprint written with the words is read and matches them.
+  Without it, a seed can be wrong while the checksum passes; the reader is
+  an input aid.
 
 Out of scope: languages other than English BIP39; non-BIP39 secrets;
 screenshots or printed text; reading without the review step; any use where a
@@ -79,126 +75,99 @@ training epoch.
 ### Data publication
 
 The training data are published in full, with their generators: simulated
-data, and, from later versions, photos of blank seed supports and photos of
+data in the recipes, and the photos of blank supports and blank printed cards
+as datasets of the release (MIT); from later versions, photos of
 participants whose consent explicitly covers publication. Validation data
 are published. The test set is not (see [Test set](#test-set)). Policy:
 [`RELEASING.md`](RELEASING.md#data-publication-policy).
 
 ## Evaluation
 
-### Worlds
+Full report, with the protocol and every bench:
+[`releases/haller-1/EVALUATION.md`](releases/haller-1/EVALUATION.md).
+Engine: `handwritten-seed` branch of the SeedSigner fork as of 2026-11-22.
 
-Results are never summed across worlds: the camera of a SeedSigner (OV5647,
-fixed focus) is much worse than a phone camera, and a rate measured on phone
-photos does not hold for the device.
+Definitions (per page): **verified**, the fingerprint written with the words
+is read and matches the seed, the only state announced as right; **wrong
+verified**, verified but not the written seed (the dangerous case);
+**exact**, every word displayed is the written one, whatever the trust
+level; **words**, words displayed correctly. *Test* benches never served to
+choose a threshold, a rule or an epoch.
 
-| World | Photos | Writers | Source |
-|---|---|---|---|
-| `simulated` | TBD | synthetic | pages generated with evaluation-only fonts and EMNIST test letters |
-| `seedsigner` | TBD | TBD | photos taken with a SeedSigner camera of test seeds written for this purpose (never used for funds) |
-| `phone` | TBD | TBD | photos sent by volunteers of the write-a-seed campaign (test seeds handed out by the campaign) |
-| `web` | TBD | TBD | public photos of handwritten test seeds found on the web |
+### Results
+
+Verified (wrong) / exact / words / pages not found:
+
+| Bench | Pages | Result |
+|---|---:|---|
+| Real photos, test half | 35 | 0 (0) / 30 / 485 / 1 |
+| Blank cards of other makers photographed, writing simulated | 70 | 0 (0) / 21 / 417 / 23 |
+| Hard real photos taken by the device | 10 | 4 (0) / 7 / 99 / 1 |
+| Usual simulated photos | 1,560 | 0 (0) / 1,402 / 21,048 / 45 |
+| Badly framed | 1,167 | 0 (0) / 723 / 13,135 / 176 |
+| Red team | 845 | 0 (0) / 554 / 8,635 / 47 |
+| Lists with a fingerprint line | 1,200 | 391 (0) / 963 / 16,147 / 78 |
+| Red team with a fingerprint line | 838 | 475 (0) / 586 / 8,677 / 60 |
+| Numbered lists with a fingerprint line | 800 | 539 (0) / 639 / 10,370 / 58 |
+| Traps around the fingerprint line | 800 | 516 (0) / 576 / 8,141 / 130 |
+
+**0 wrong seeds among 2,376 verified** (2,019 on the test benches, 95 %
+upper bound 0.15 %; 357 on the tuning benches). The fingerprint check bounds
+a chance match of a wrong seed at 1e-6 per photo.
+
+### Results by writing
+
+115 test photos with real backgrounds (real test half, cards with simulated
+writing, hard device photos), exact seeds: capitals 35 of 54, lowercase 15 of
+37, neat cursive 5 of 20, fast cursive 1 of 2.
 
 ### Test set
 
-The photos of the `seedsigner`, `phone` and `web` worlds form the test set.
-They are kept private while they are in use, so that they do not reach the
-training data of later models, ours or others', and keep measuring reading
-on unseen handwriting; the web images are not ours to redistribute.
+The real photos of the test benches are kept private while they are in use,
+so that they do not reach the training data of later models, ours or
+others', and keep measuring reading on unseen handwriting; the web images
+are not ours to redistribute.
 
 | | |
 |---|---|
-| Manifest | `releases/haller-1/test-manifest.json`: SHA-256 of each file, composition by world, source, writing, support and number of words; no image, no seed |
-| SHA-256 of the manifest | TBD |
-| Evaluation code | published in this repository |
+| Manifest | [`releases/haller-1/test-manifest.json`](releases/haller-1/test-manifest.json): SHA-256 of each of the 115 files, composition by world, source, writing, support and number of words; no image, no seed |
+| SHA-256 of the manifest | `8091a21f79b37b3160c8ca9d8681a9def4a5ddbecc0705573319785feb91c0a9` |
+| Evaluation code | the reading engine of the SeedSigner fork, `read_seed` |
 | Other models | evaluated on the same set on request (issue of this repository) |
 | Publication | when a later version replaces the set, except photos without a consent to publication and web images (listed by source) |
 
-Definitions (per photo): **exact**, every word displayed is the written one;
-**valid and exact**, exact and reported valid with no word marked;
-**false valid**, reported valid but not the written seed (the dangerous
-case); **words**, words displayed correctly over words written (a page not
-found, or found with the wrong number of words, counts all its words as
-wrong). Intervals are 95 % Wilson intervals over photos, and for words a
-bootstrap over writers and photos.
-
-### Results by world
-
-| World | Words read correctly | Exact seeds | Valid and exact | False valid |
-|---|---|---|---|---|
-| `seedsigner` | TBD | TBD | TBD | TBD |
-| `phone` | TBD | TBD | TBD | TBD |
-| `phone`, SeedSigner camera simulated | TBD | TBD | TBD | TBD |
-| `web` | TBD | TBD | TBD | TBD |
-| `simulated` | TBD | TBD | TBD | TBD |
-
-### Results by writing, `seedsigner` world
-
-| Writing | Photos | Words read correctly | Exact seeds | Valid and exact | False valid |
-|---|---|---|---|---|---|
-| Block capitals | TBD | TBD | TBD | TBD | TBD |
-| Lowercase, separate letters | TBD | TBD | TBD | TBD | TBD |
-| Neat cursive | TBD | TBD | TBD | TBD | TBD |
-| Fast cursive | TBD | TBD | TBD | TBD | TBD |
-
-### Results by layout, `seedsigner` world
-
-| Layout | Photos | Words read correctly | Valid and exact | False valid |
-|---|---|---|---|---|
-| Official card, 12 words | TBD | TBD | TBD | TBD |
-| Official card, 24 words | TBD | TBD | TBD | TBD |
-| List, one column | TBD | TBD | TBD | TBD |
-| List, two columns | TBD | TBD | TBD | TBD |
-
-### False valid seeds
-
-| Test set | Photos | False valid | Upper bound (95 %) |
-|---|---|---|---|
-| All worlds, evaluation photos | TBD | TBD | TBD |
-| Adversarial pages (see [Known limitations](#known-limitations)) | TBD | TBD | — |
-
 ### Word strips
 
-Share of word strips whose most probable BIP39 word is correct, quantized
-networks run by the C library:
+Most probable BIP39 word, quantized networks run by the C library, on the
+9,156 simulated evaluation strips regenerated by the recipe: 96.32 %
+(capitals expert), 96.13 % (lowercase expert).
 
-| Strips | Capitals expert | Lowercase expert | Blend |
-|---|---|---|---|
-| Simulated evaluation strips (regenerated by the recipe, 9,156) | TBD | TBD | TBD |
-| GNHK test split, BIP39 words (2,980) | TBD | TBD | TBD |
+### Trust gauge
 
-### Calibration
-
-The word scores divided by a temperature are used as log-likelihoods: the
-probability of each word given the checksum is the percentage shown next to a
-proposed word, and a word below 0.95 is marked uncertain. The temperature
-(2.2) and the thresholds were chosen on 640 simulated pages kept apart from
-every test set, as the lowest temperature with no wrong seed reported valid.
-
-| Measure | Value |
-|---|---|
-| Expected calibration error of the displayed word probability, `seedsigner` world | TBD |
-| Same, `simulated` world (capitals / cursive) | TBD |
-| Expected calibration error of the seed probability | TBD |
+Announced share of fully right seeds: level 3 at least 90 %, level 2 at least
+40 %, chosen on simulated tuning pages; the measured share is at or above it
+on every bench but one (red team with a fingerprint line, level 2: 22 of 66,
+not significant).
 
 ### Speed
 
-Raspberry Pi Zero (ARMv6, single core), SeedSigner's C library:
-
-| Step | Time |
-|---|---|
-| Loading the three networks | TBD |
-| 12-word card | TBD |
-| 12-word list, capitals | TBD |
-| 12-word list, lowercase or cursive | TBD |
+Raspberry Pi Zero (ARMv6, single core), application running, SeedSigner's C
+library, 16 real photos (13 taken by the device): 8.9 to 77.5 s, median
+20.6 s; 12-word cards 8.9 to 13.8 s; 12-word lists verified by their
+fingerprint 22.0 to 25.1 s.
 
 ## Known limitations
 
 - **A valid checksum does not prove a correct reading.** One random wrong
   combination of words in 16 passes the checksum of a 12-word seed (1 in 256
-  for 24 words). The engine reports a seed as valid only when its own
-  probability is high, but adversarial or unlucky pages can still produce a
-  false valid seed. The review against the paper is required.
+  for 24 words). Only a matching fingerprint makes a seed verified; without
+  it, adversarial or unlucky pages can still produce a wrong seed at a high
+  trust level. The review against the paper is required.
+- **Fake cards.** Part of a plain sheet can be taken for a seed card; its
+  words are then read as another document and every word is uncertain.
+- **Fingerprint beside the last word.** A fingerprint written on the line of
+  the last word, to its right, is read as part of that word; the seed is not
+  verified.
 - **Faint letters.** The normalization keeps ink above a share of the darkest
   stroke; letters written with a skipping pen or very light pressure at the
   start or end of a word can vanish, and the rest of the word can be read with
@@ -213,9 +182,10 @@ Raspberry Pi Zero (ARMv6, single core), SeedSigner's C library:
   by the line numbers when they are written; when both orders give a
   plausible seed, every word is marked uncertain. Columns written very close
   together can be read as one.
-- **Layouts with more than two columns, several documents in the photo, and
-  seed card templates other than SeedSigner's** are not supported; ruled
-  notebook paper can be taken for a seed card.
+- **Layouts with three columns or more and several documents in the photo**
+  often fail; **seed cards of other makers** are read less well than
+  SeedSigner's (21 of 70 exact on the bench of photographed blank cards with
+  simulated writing).
 - **Look-alike words** (shop and ship, review and renew, item and ten): a
   confident wrong reading is possible when the writing is ambiguous.
 - **Crossed-out words and corrections** can be read instead of the

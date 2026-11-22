@@ -27,6 +27,7 @@ carries the files that are not in the git history.
 | `EVALUATION.md` | `releases/VERSION/EVALUATION.md` |
 | `NOTES.md` | `releases/VERSION/NOTES.md`, also the text of the GitHub release |
 | `LICENSE`, `NOTICE.md` | license and third-party notices; `NOTICE.md` accompanies the weights |
+| `test-manifest.json` | `releases/VERSION/test-manifest.json`, manifest of the private test set, when present |
 
 Weights are never committed outside `recipes/` data, and never under
 `releases/`.
@@ -120,24 +121,22 @@ published.
 
 ## Conditions for haller-1
 
-Haller-1 is released when all of the following hold, not on a fixed date:
+Decision of 2026-11-22: Haller-1 is released as it stands, after the launch
+video, without a verification retraining (a fix follows if a gap is
+reported; Haller-2 follows). The conditions set on 2026-11-20 (photos of the
+`eval_v3` set, 300 photos of participants) are left to Haller-2. Before the
+tag:
 
-1. The evaluation photos taken with a SeedSigner camera (`eval_v3`),
-   including the pairs of the same page photographed with a phone and with
-   the SeedSigner camera, are taken and evaluated.
-2. Enough photos from participants of the write-a-seed campaign are collected
-   for a solid figure: target 300 photos.
-3. The exact recipe of the weights is complete: `recipes/haller-1` rebuilds
-   the published weights from public inputs, and every step that cannot be
-   reproduced bit for bit is stated with its published intermediate files.
-4. The reading times are measured on a Raspberry Pi Zero.
-5. The model card, `releases/haller-1/` and the changelog contain no `TBD`
+1. The model card, `releases/haller-1/` and the changelog contain no `TBD`
    (`scripts/release.sh` refuses to tag otherwise).
-6. The manifest of the test set is built and committed as
-   `releases/haller-1/test-manifest.json` (it holds no image and no seed), its
-   SHA-256 quoted in the model card and in `releases/haller-1/EVALUATION.md`, and the code that evaluates the
-   test photos (photo-level reading and the metrics of the model card) is in
-   this repository.
+2. The weights are the ones of the SeedSigner fork (`weights.sha256`,
+   `haller-weights.json`), each with its recipe in `recipes/`.
+3. The manifest of the test set is committed as
+   `releases/haller-1/test-manifest.json` and its SHA-256 quoted in the
+   model card and in `releases/haller-1/EVALUATION.md`.
+4. The datasets of the release (blank supports, blank cards, gpt-image-2
+   pilot and v2) carry `LICENSE` (MIT), a README and `SHA256SUMS`, and hold
+   no seed of a test bench.
 
 ## Making the repository public
 

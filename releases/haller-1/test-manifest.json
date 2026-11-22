@@ -1,0 +1,1046 @@
+{
+ "composition": {
+  "source": {
+   "card_photos_simulated_writing": 70,
+   "maintainer_phone": 1,
+   "maintainer_pi": 28,
+   "participants": 9,
+   "web": 7
+  },
+  "support": {
+   "blank": 27,
+   "metal": 1,
+   "other": 1,
+   "other_card": 70,
+   "printed_template": 1,
+   "ruled": 1,
+   "seedsigner_card": 14
+  },
+  "words": {
+   "12": 67,
+   "24": 48
+  },
+  "world": {
+   "composited": 70,
+   "phone": 10,
+   "seedsigner": 28,
+   "web": 7
+  },
+  "writing": {
+   "capitals": 52,
+   "cursive": 12,
+   "fast_cursive": 2,
+   "lowercase": 37,
+   "mixed": 1,
+   "neat_cursive": 8,
+   "stamped": 1,
+   "unknown": 2
+  }
+ },
+ "composition_by_world": {
+  "composited": {
+   "source": {
+    "card_photos_simulated_writing": 70
+   },
+   "support": {
+    "other_card": 70
+   },
+   "words": {
+    "12": 31,
+    "24": 39
+   },
+   "writing": {
+    "capitals": 32,
+    "cursive": 12,
+    "lowercase": 26
+   }
+  },
+  "phone": {
+   "source": {
+    "maintainer_phone": 1,
+    "participants": 9
+   },
+   "support": {
+    "blank": 9,
+    "ruled": 1
+   },
+   "words": {
+    "12": 6,
+    "24": 4
+   },
+   "writing": {
+    "capitals": 5,
+    "lowercase": 3,
+    "neat_cursive": 2
+   }
+  },
+  "seedsigner": {
+   "source": {
+    "maintainer_pi": 28
+   },
+   "support": {
+    "blank": 17,
+    "seedsigner_card": 11
+   },
+   "words": {
+    "12": 28
+   },
+   "writing": {
+    "capitals": 13,
+    "fast_cursive": 2,
+    "lowercase": 6,
+    "neat_cursive": 5,
+    "unknown": 2
+   }
+  },
+  "web": {
+   "source": {
+    "web": 7
+   },
+   "support": {
+    "blank": 1,
+    "metal": 1,
+    "other": 1,
+    "printed_template": 1,
+    "seedsigner_card": 3
+   },
+   "words": {
+    "12": 2,
+    "24": 5
+   },
+   "writing": {
+    "capitals": 2,
+    "lowercase": 2,
+    "mixed": 1,
+    "neat_cursive": 1,
+    "stamped": 1
+   }
+  }
+ },
+ "date": "2026-11-22",
+ "files": [
+  {
+   "sha256": "003ec87a0944d18e716ce571c915081b53945afa499ed38a6ee4acb70379c823",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "02d57a614a482a1b2bfd8c6bbd3bb4461e51bc1af25248a14171c1fa04024c4c",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "03951cce3c2e837d82704e5448b81447c6ac7ccdbf00a7cfc8015132b2ca9693",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "04b6abf943caa3733490263d56bcf84ff3147eef9084659c84b90839bda0cc6f",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "05604b59bd1911f3696de35b2dfa08ffd041a9dca9efa23a26d94b6659a41399",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "0a71cb138f29b856b29a335386a7010ab0d758eacbde997e63f6599e1f0b01ec",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "0aa25912ae4cf9fd8bed028015629c3eccf0c5841f3555763d2c703cb511b8e0",
+   "source": "participants",
+   "support": "blank",
+   "words": 12,
+   "world": "phone",
+   "writing": "neat_cursive"
+  },
+  {
+   "sha256": "0b42cfa0f29c3dfc6a6ef90693f3e4bbb27ba891444b9337deac5331d23519d2",
+   "source": "maintainer_pi",
+   "support": "blank",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "0bc020171a34d74d7cfabe6223fd4540f72af80a9151a03ab5979bc20e16f244",
+   "source": "maintainer_pi",
+   "support": "blank",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "fast_cursive"
+  },
+  {
+   "sha256": "0d3972f205a45cbcfe9f0d8ad80018a1a2d2c4998bf71cfeb381f99f3af6a773",
+   "source": "participants",
+   "support": "ruled",
+   "words": 12,
+   "world": "phone",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "0e3b7d4477a947e1516926c2afe49b1b52c1e4b34f23848482860df02db7db14",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "cursive"
+  },
+  {
+   "sha256": "10d3cc5127ac3d0c64b9d13a2ac088d5c7c45038a16fc4c2a0391e2dc9cdabe6",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "1103a92c71d4076f4a82d1b5d94c02f5dfd4493c67e097582cb26851fcdaa635",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "12004b72f45aec5642f48dedb1be940d552f22af95334ead1d386cfc6014f96b",
+   "source": "maintainer_pi",
+   "support": "blank",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "fast_cursive"
+  },
+  {
+   "sha256": "124a2bd3488e5363fbd94371a8af60cc069f97c34d759e77346abb6cbb7e7e00",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "14e6b47c71035f495b92be9984ca0606809eecb5f58ba4ec8b649476dc0d7682",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "17b463443d2d4fa817bd64957c9fc0ea08000f164c23102dc0124b41c3e70e80",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "1bb7a16e8681ba5c7f9bdeaca4963e2aa11f40039d41533740f5f7164dae16b4",
+   "source": "maintainer_pi",
+   "support": "seedsigner_card",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "1daa5ae9897fa52ef790e64cfac0b5e9ce3d2c8827dee0c3b2d9d102d05e62fc",
+   "source": "maintainer_pi",
+   "support": "seedsigner_card",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "21068b43e7a531b637318a2add576c22b86d7f584cbfdb4c9ce4a638e7c30eaa",
+   "source": "participants",
+   "support": "blank",
+   "words": 12,
+   "world": "phone",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "23391722535359408ef6045a43f91b778eee8f6992b5d94efe868d7eb638508e",
+   "source": "participants",
+   "support": "blank",
+   "words": 24,
+   "world": "phone",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "299f844baed926c19b32dc208a7f6e359e5f37fef276279b9c6aa1e8d00705fc",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "2b006dd139c304de9c6f20eba0ab0adff528ef250edcc953a949437f5bcbf3f7",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "2f4de3642e9b088b7d8a787ef1b76629e379c4c5deff9049d0977f1656456aa2",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "347df990c3a4aa0310a7a48e53fa5157be3fa76f3b4f0e3c01612761eab95d42",
+   "source": "maintainer_pi",
+   "support": "seedsigner_card",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "34b34f1b2e2a1d6be650e32191500af6ba84975391024e3c19d76e07039ea0b0",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "34e7c36cc872575107be7c1bcdf87aa6f28fe1270cca97e7ff763d84ec98c729",
+   "source": "maintainer_pi",
+   "support": "seedsigner_card",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "35aec7e8225aec012f12f64b070d9551fb296f3f022c29eb7a9df0cb8541d06e",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "3734ddfc4690ae090f4caa1eed8f48998192cbcef346b987272b39dfe8e48ae5",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "cursive"
+  },
+  {
+   "sha256": "38a4c3993777c0b6d7625abc80df8af2cbc0d98a817b7826d47ceb3ef546fe0a",
+   "source": "maintainer_pi",
+   "support": "seedsigner_card",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "3a75478e53274fb7c1865234d7a723fe23986bf22c0fc914db421436219a9e52",
+   "source": "participants",
+   "support": "blank",
+   "words": 24,
+   "world": "phone",
+   "writing": "neat_cursive"
+  },
+  {
+   "sha256": "3f004354555f203d8c138e3c28d3d318d23b224f237f1bc5bc7261d5e08017bd",
+   "source": "maintainer_pi",
+   "support": "blank",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "neat_cursive"
+  },
+  {
+   "sha256": "421a947da14a1c0b390b87367e68862b24fb71e41048f460072f3670278d3a8b",
+   "source": "maintainer_pi",
+   "support": "seedsigner_card",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "48fc480a1e7d8231bd317900a56f0bdfaf0930e51c93979e1abd88eb10ab9548",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "50343fbfe1a6f92845519f31b4bc5a7bf75177a0fba48e97893b7e7cc00c0b8b",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "50b084e74860ba482545359112d819dd34bef8b99a6dabb2abc0ea4ce1fdc269",
+   "source": "web",
+   "support": "seedsigner_card",
+   "words": 24,
+   "world": "web",
+   "writing": "mixed"
+  },
+  {
+   "sha256": "547bcbf7ed487940fd109eaf7765c5521a74c834b1a9b3190f55cda2560a75a8",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "558508ad2277cc1f56753d7448fba7eb2d95da439157fe9a05b35405b954190f",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "56e66b97bac51a79474ba162b0cc16e09c5d3ee1ccdb40072c85feb3e7c57bc9",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "cursive"
+  },
+  {
+   "sha256": "5dfab2d858ce5ed7b8373d4e6611f962ab29ec14d72e040cb2c5e0171db58739",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "cursive"
+  },
+  {
+   "sha256": "5f92d11b25622ca20bdbd17e4ed3a2f436ac669b5e7b28319b9b157fc9872e64",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "6037c6d6a4e21b225d9d523c23f20f1cbf0a591c98adf45dd4482f8005dbe961",
+   "source": "web",
+   "support": "blank",
+   "words": 12,
+   "world": "web",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "62065518d0d443b1123618f4d0a1b174206c064b1f91402f702b302ffa71c01f",
+   "source": "web",
+   "support": "metal",
+   "words": 24,
+   "world": "web",
+   "writing": "stamped"
+  },
+  {
+   "sha256": "622bf58b53461089a2684c3cc52747bde4cf009f39ae307e9cdc344426311d4e",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "6291a4af058d4aedf246675e401c047a24f5956a1b24d6a610c54289ca05c6ea",
+   "source": "participants",
+   "support": "blank",
+   "words": 12,
+   "world": "phone",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "6382e976cf7e091944ed7fa8df2e450e7ccf89d67bcd482fd23dd6015c72bbd3",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "670eebf08e90c3a48103aa73c02debb5dbd991b59ca284ea6ed015c14008818c",
+   "source": "maintainer_pi",
+   "support": "seedsigner_card",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "67a45f850952921237168f787642aec0ea2fcf6da8d5b1dd6389b051ee7a6246",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "6b4255912ae9855038dae7583e152a98ba4c6e20d96cc7e962d9e91153fae062",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "cursive"
+  },
+  {
+   "sha256": "6f4216f8a53f6d8abbb62d07b91d750f80a624d8c81d934a7f0723629902a878",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "cursive"
+  },
+  {
+   "sha256": "7058d1e09a4635cef3a1d122b8601ae6cab874b97dbb981546255f00e862a18d",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "70ecee0d9c3537b8384bc607ae1e60a475f9641166ede44b96fbd7be747e7863",
+   "source": "maintainer_pi",
+   "support": "blank",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "neat_cursive"
+  },
+  {
+   "sha256": "71ea04f6620c7d5967432667fc44f0ee135275447e0248418a838d87a7efdf58",
+   "source": "maintainer_phone",
+   "support": "blank",
+   "words": 12,
+   "world": "phone",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "73de46a861994576c666464862f6d6fd0463762febeaf6d689d35def73cb8347",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "75071c71db215f299d24fc7a9d18d7defeb058a91b43cadb54729191fe88b138",
+   "source": "maintainer_pi",
+   "support": "seedsigner_card",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "778bb1a6a44919b72e98c0115029cacd0efbf28b44a830403038effdfc88bf48",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "77b8165899b5f5f5396daa7691f2859c49535583ab8b9a2a205ba1b01aaf2dd2",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "7847ef2ba984a5118a102ac21b5831adedd76713c270a0ff51682f82fda43deb",
+   "source": "web",
+   "support": "seedsigner_card",
+   "words": 24,
+   "world": "web",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "7b0ae04af8199073f95b74d4655a27629f04e34c445543356565836fd91d88d0",
+   "source": "maintainer_pi",
+   "support": "blank",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "7c355ab6964cd9e4fd06bc56fa34e79fac5d9dc200756d22d3642419e340d9c2",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "7c80d6b0a48dae04178af09c65eb3d8b1229182bc3a342bb8e60810546999232",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "7e337947e350457c8e758c1f247f1d356a8001b0c8b510d60de8552ef2c1c54e",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "7fdc742784bb389efb41be7e9168086828ede24e758a5cbaf2e74b59e8b31c06",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "8056318471320dbf1b5ff80bcf05532fe15aa86ae82a1ae1b58b43a8eec63e95",
+   "source": "web",
+   "support": "other",
+   "words": 24,
+   "world": "web",
+   "writing": "neat_cursive"
+  },
+  {
+   "sha256": "8305b599082f62d2514344f3cdbae41bbc06f6101425576c542f2164722f3c4d",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "857f23967ed6e9e1f2b9512d609a53b9c3138720d623ba1a69b0521757011d61",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "88067323fa5887ad5cb6a5e586842350f7b77a277052cab531aee12c62d5869a",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "8885dc1dc4f11987b05b7d648ed9fa3426ff48033d72999cdc860b5d77a3fe74",
+   "source": "maintainer_pi",
+   "support": "blank",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "88d63c1614fe86bb3e9acade00c2a993b2f71a875eb896214a766a1351ad9289",
+   "source": "web",
+   "support": "printed_template",
+   "words": 12,
+   "world": "web",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "8b79f5322d652112c23eaadb193158be00d6408bc8d01d20c3ce85e3905f63b7",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "8b9aefbdd4f8d454f4bd6fd6ff9a758759b562a844b54f87f40b7565aa5a78a9",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "8c16f9a670f829abd11e24110cbd8a89aa48fbec7b466be78ee6334218450873",
+   "source": "maintainer_pi",
+   "support": "blank",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "8d10a7f579c28a3e65d824353996c9de515a0a0c75cace9ee867e55a2ba00ed8",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "cursive"
+  },
+  {
+   "sha256": "8ee175bd410b7f4eb500deb773492ab9f1369857f6710fb3b2ca35982b41c234",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "cursive"
+  },
+  {
+   "sha256": "9752219e42b4d55f9795bee2bb09e5abeb2776e8450dcf54a9ba3ca1f4f2aa22",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "cursive"
+  },
+  {
+   "sha256": "97a0e6a523c371b4a2d301762cf6cd2590d3d32465ade59f71ef3defed2ff2df",
+   "source": "maintainer_pi",
+   "support": "blank",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "neat_cursive"
+  },
+  {
+   "sha256": "9a06289d8448d2842be3070cbad7479b284a9fe1d1e7aeebe40ea37eebd244ad",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "9f627a4f0d6c4226e08fca4700c5199f85c979525db075aa5fb4292c906519c2",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "a8cc4050860b77674d8c0ea6cd5fdc5b27b1cea89ea67e07d8e05d470859ca89",
+   "source": "maintainer_pi",
+   "support": "blank",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "a9fd4761fafd58e17865ca8fc0683665330b5ac0a54cbf75f4e97b4afb32ca17",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "acdc832943c797eaf455f5399dc087f8e1773243ecf49f2425c5a7d5a8b06c24",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "adff422774e3fb2769163d5a55b8756ffa20647f22c001023dfd4fce7214df5f",
+   "source": "maintainer_pi",
+   "support": "blank",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "af65db1b01a4d3000caebcfe47d022c30647c91b7d44aaa9400b88151f43f791",
+   "source": "participants",
+   "support": "blank",
+   "words": 24,
+   "world": "phone",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "b0c2f4c2dbc22baf7d8cea6d082a4f64309c6f74ab78c2eb3d187e9991d1ba8b",
+   "source": "maintainer_pi",
+   "support": "seedsigner_card",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "b18952f945f842a5d952e849ee9e3347550a2f94c60edb0ecd32cb7912660bce",
+   "source": "maintainer_pi",
+   "support": "blank",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "neat_cursive"
+  },
+  {
+   "sha256": "b266ca37ea426aea3323e0d397b134861745262efa01f10a2b5aeb40ecb3f6ff",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "b47ca7a98030985359df6f59421143dd4aef17be16edf413d100d80c96892239",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "cursive"
+  },
+  {
+   "sha256": "b50983a4294d46a7f3a30d60666cfab6feb07a811a0c1de35a7fd63d492e50af",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "b5ce88eb665bc2692d0f6bbe00a55f7e390fdbfd8996f93a23a8d433c5333d1d",
+   "source": "maintainer_pi",
+   "support": "blank",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "b9cfab675d993dee9bf30d9d6de879d1877d3fe0da716f58ba332afcddfc3207",
+   "source": "maintainer_pi",
+   "support": "seedsigner_card",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "bcef74a7ce21c9683643f954dcd653f280bb556788c6d70b00642fc14edc5dbb",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "c0d0a86bf05fd51f9d40e8521c2371cb38ace5c57274e7faea3a62c4b8c7d43e",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "c41bc4e8a1100da33795ae6b4512f9d3a4f93e083f7f886a623a50f7fdfa009c",
+   "source": "participants",
+   "support": "blank",
+   "words": 12,
+   "world": "phone",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "c753cd894f6e797a0a8140b453f0820bd34b789181c288ac9a3cef7348a53f43",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "cb9cc9db3662e0f5c4358e30b8c5b651d19363427a22d38be086ac2ba36b1326",
+   "source": "maintainer_pi",
+   "support": "blank",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "d377171ee5ae5c52be1dc3f4b9a2630bd5fbbc4a38d9146c751c8f7bf2a1b120",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "d49fab58fcb0358b41be0f419ce96b53c72a951e13508c0bb85f48eabc392be0",
+   "source": "maintainer_pi",
+   "support": "blank",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "unknown"
+  },
+  {
+   "sha256": "d5b86197de1d5e96172524efecb88cdd139936674e891ecbf38eb73d20e5a7c6",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "d7417151019ec3b782260375efbd784eb4224640a6d2801bfaef3175fc99fb79",
+   "source": "maintainer_pi",
+   "support": "blank",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "neat_cursive"
+  },
+  {
+   "sha256": "d77e5ab446f6a9535325ea5be742316df4f7ecd84646a974596306ecb8fcd574",
+   "source": "web",
+   "support": "seedsigner_card",
+   "words": 24,
+   "world": "web",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "d904dd430faecb0e835605496120f9b59753f3b21cd441ef188538169442ea32",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "d9ee09810ec7d553f67d2041cbee3f5f7f0863632fa2ec15b6459bdded11ec2b",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "dac0a10942aa63c1482d2ed1e4cd0d6280efb611efbb8ecbbebbf19c81fb56af",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "dd6e8b9259128ffc0b5bdb552fc0133145edabeee3b351085274cb89712682a1",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "dde50bafb0d4740bff852eea1118e597b768ae2201c3e115168431930a65ec72",
+   "source": "maintainer_pi",
+   "support": "blank",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "unknown"
+  },
+  {
+   "sha256": "ead9247925563032dc036184eae3d8d465e59581630cbddc578ced1499b593ea",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "eb968006771ad87f516d1570cb449024da64ca2b9a7220b1c550ef12bdb8ae65",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "cursive"
+  },
+  {
+   "sha256": "eca913c21684d112a2b98a7c5832212deb44fb98fbf5b149a34825fd72c58dee",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "eeea777b9ced4bd6f1d1db2bbe23291e34bc842b29574f4aba17e2509fa09c61",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "cursive"
+  },
+  {
+   "sha256": "ef0c24dfdd25ea78d830c1cb22946031a77c0792d0b2af14025a701507cb349f",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "f160b6b9e4822339f875a7250d7813188ca137315443ee7b2343b25d3ee5fa66",
+   "source": "participants",
+   "support": "blank",
+   "words": 24,
+   "world": "phone",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "f297e9ba35693954ad36ddacb5d811144541a4101eac568638a1ef066d09a909",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "lowercase"
+  },
+  {
+   "sha256": "f809c195847ac5fc153de0e88e925cdcfff273de22d0714d3b5d036fa5523309",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 24,
+   "world": "composited",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "fe089d4a9328ca1ee77a23f87777bd87a3ce99b87f07ab201af328e4e9fd7662",
+   "source": "maintainer_pi",
+   "support": "seedsigner_card",
+   "words": 12,
+   "world": "seedsigner",
+   "writing": "capitals"
+  },
+  {
+   "sha256": "fef71f7d4de1117d7010d069949f2dd2ce1df750f70d17f9118aec75460fa6a3",
+   "source": "card_photos_simulated_writing",
+   "support": "other_card",
+   "words": 12,
+   "world": "composited",
+   "writing": "lowercase"
+  }
+ ],
+ "format": 1,
+ "name": "haller-1-test",
+ "photos": 115
+}

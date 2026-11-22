@@ -138,6 +138,9 @@ git show "$COMMIT:$REL/EVALUATION.md" > "$OUT/EVALUATION.md"
 git show "$COMMIT:$REL/NOTES.md" > "$OUT/NOTES.md"
 git show "$COMMIT:LICENSE" > "$OUT/LICENSE"
 git show "$COMMIT:NOTICE.md" > "$OUT/NOTICE.md"
+if git cat-file -e "$COMMIT:$REL/test-manifest.json" 2>/dev/null; then
+    git show "$COMMIT:$REL/test-manifest.json" > "$OUT/test-manifest.json"
+fi
 (cd "$OUT" && sha256sum -- * | grep -v ' SHA256SUMS$' > SHA256SUMS && sha256sum --quiet -c SHA256SUMS)
 info "release files in $OUT:"
 (cd "$OUT" && ls -l | tail -n +2 | awk '{printf "  %10s  %s\n", $5, $9}')

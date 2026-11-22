@@ -18,12 +18,21 @@ any copy of the weights.
 | Qwen3-VL-4B-Instruct | Apache License 2.0 | check of the generated words (accept or reject) | nothing |
 | BIP39 word lists | as distributed with the MIT-licensed reference implementation (`trezor/python-mnemonic`) and `embit` | labels, dictionary decoding, non-target words | `data/bip39_english.txt`, `data/other_words.txt` (accents removed) |
 | SeedSigner | MIT | page detection and normalization code imported at data generation, C library for inference, printed seed card templates | `data/cards/card12.png`, `data/cards/card24.png` (fronts of the 12- and 24-word cards); `recipes/haller-1/evalsim/preprocess.py` (normalization code of the time) |
+| Printed seed card templates of other makers and projects (25 templates, `recipes/haller-1-detector/data/card_templates.json`; 7 under MIT, 18 without a stated license) | each template's own terms (column `license`) | detector: blank templates drawn on simulated pages | no template file; their word boxes (`recipes/haller-1-detector/gen/data/modeles_cartes/cases.json`) and digests |
+| Photos of blank supports and blank printed cards taken for Haller | MIT (datasets of the Haller-1 release) | detector: real backgrounds and real cards under simulated handwriting | as datasets of the release, not in the git history; the printed card designs remain the property of their authors |
 
 Not used by Haller-1: the Kaggle "Handwriting Recognition" names (CC0,
-`haller/names.py`, used only by experiments), and any printed seed card
-template other than SeedSigner's.
+`haller/names.py`, used only by experiments), and the generated photos of
+the gpt-image-2 datasets published with the release (training data of later
+versions).
 
 ## Attributions
+
+**Files derived from GNHK** keep the CC BY 4.0 License of GNHK, not the MIT
+License of this repository: `recipes/haller-1/data/emuru_c31.npz`,
+`emuru_c32.npz`, `emuru_c33.npz`, `emuru_train.npz` (words generated in the
+hands of GNHK writers) and `recipes/haller-1/data/gnhk_train_f.mask.npy`
+(filter of the GNHK training words).
 
 **GNHK.** Alex W. C. Lee, Jonathan Chung, Marco Lee, "GNHK: A Dataset for
 English Handwriting in the Wild", ICDAR 2021. Dataset by GoodNotes,

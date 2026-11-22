@@ -17,7 +17,7 @@ commits that replaced them.
 | Step | Reproduced | How |
 |---|---|---|
 | Simulated shards fv0, f0-f120 (`gen_univ.py`) | exactly, checked on f5 and f100 (filter included) | frozen generator, 287 pinned fonts, EMNIST train, card templates |
-| Composed shards s0-s9, k0-k4, kb0 (`composer.py`) | exactly, checked on s5 and k0 | frozen compositor, photos of blank supports and of official cards (manifest published, images not yet) |
+| Composed shards s0-s9, k0-k4, kb0 (`composer.py`) | exactly, checked on s5 and k0 | frozen compositor, photos of blank supports and of printed cards (archive `haller-1-detector-inputs.tar` of the release) |
 | Variety audit and filter of every shard | the audit of each shard is published (`data/audits.tsv`) | `variete.audit`, `variete.filtrer` |
 | GNHK windows (train and test) | exactly | `haller.detector_gnhk` |
 | Training | not the same bits | float model and log published (`data/`) |
@@ -138,9 +138,10 @@ the main README on `PYTHONPATH`.
   the 25 files of the run have these digests (checked).
 - Photos of blank supports (162: papers, notebooks, cards, taken for this
   project, no handwriting) and of printed official cards (52 photos
-  and 258 variants on paper backgrounds): **to be published; their manifest
-  is published** (`data/inputs.sha256`, 1,213 files; the same files as for the
-  previous detector, checked). The images used are the working versions (long
+  and 258 variants on paper backgrounds): published as the archive
+  `haller-1-detector-inputs.tar` of the Haller-1 release (MIT), whose
+  `MANIFEST.sha256` is `data/inputs.sha256` (1,213 files; the same files as
+  for the previous detector, checked). The images used are the working versions (long
   side 2048 px) and the variants exactly as listed; the full-resolution
   exports that may be published elsewhere are not the same pixels. Layout
   expected by the compositor, `IN`: `supports/{annot,travail}`,
