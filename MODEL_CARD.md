@@ -102,16 +102,16 @@ Verified (wrong) / exact / words / pages not found:
 | Bench | Pages | Result |
 |---|---:|---|
 | Real photos, test half | 35 | 0 (0) / 30 / 485 / 1 |
-| Blank cards of other makers photographed, writing simulated | 70 | 0 (0) / 34 / 716 / 12 |
+| Blank cards of other makers photographed, writing simulated | 70 | 0 (0) / 34 / 716 / 11 |
 | Hard real photos taken by the device | 10 | 4 (0) / 7 / 99 / 1 |
-| Usual simulated photos | 1,560 | 0 (0) / 1,403 / 21,065 / 45 |
-| Badly framed | 1,167 | 0 (0) / 641 / 11,699 / 176 |
+| Usual simulated photos | 1,560 | 0 (0) / 1,403 / 21,065 / 44 |
+| Badly framed | 1,167 | 0 (0) / 641 / 11,699 / 172 |
 | Red team | 845 | 0 (0) / 556 / 8,680 / 47 |
-| Lists with a fingerprint line | 1,200 | 397 (0) / 963 / 16,177 / 78 |
-| Red team with a fingerprint line | 838 | 478 (0) / 586 / 8,686 / 60 |
-| Numbered lists with a fingerprint line | 800 | 564 (0) / 639 / 10,377 / 58 |
-| Traps around the fingerprint line | 800 | 541 (0) / 578 / 8,154 / 130 |
-| Abbreviated words (first 4 letters) | 400 | 0 (0) / 108 / 2,410 / 122 |
+| Lists with a fingerprint line | 1,200 | 397 (0) / 970 / 16,417 / 57 |
+| Red team with a fingerprint line | 838 | 478 (0) / 593 / 8,894 / 39 |
+| Numbered lists with a fingerprint line | 800 | 564 (0) / 654 / 10,824 / 31 |
+| Traps around the fingerprint line | 800 | 541 (0) / 586 / 8,419 / 100 |
+| Abbreviated words (first 4 letters) | 400 | 0 (0) / 109 / 2,422 / 116 |
 
 Upside-down simulated pages count as read wrong (the engine no longer turns
 a page; 106 of the badly framed photos).
@@ -162,8 +162,8 @@ level 3: 3 of 4). A reading whose order stays ambiguous gets level 1.
 
 Raspberry Pi Zero (ARMv6, single core), SeedSigner's C library, reading alone
 (the running application adds about 5 %), 17 real photos (13 taken by the
-device): 5.9 to 55.2 s, median 13.6 s; 12-word cards 5.9 to 8.7 s; 12-word
-lists verified by their fingerprint 13.6 to 24.5 s.
+device): 5.9 to 54.2 s, median 13.6 s; 12-word cards 5.9 to 8.6 s; 12-word
+lists verified by their fingerprint 13.6 to 25.2 s.
 
 ## Known limitations
 
@@ -178,7 +178,7 @@ lists verified by their fingerprint 13.6 to 24.5 s.
   perspective are followed, a page upside down or turned a quarter turn is
   not read.
 - **Abbreviated words.** Words written with their first 4 letters are read,
-  less well than full words (108 of 400 abbreviated test pages exact); short
+  less well than full words (109 of 400 abbreviated test pages exact); short
   words in spaced capitals are often not found.
 - **Faint letters.** The normalization keeps ink above a share of the darkest
   stroke; letters written with a skipping pen or very light pressure at the

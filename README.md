@@ -60,14 +60,14 @@ exact seeds / words read correctly; full report in
 | Blank cards of other makers photographed, writing simulated (70) | 0 (0) / 34 / 716 |
 | Usual simulated photos (1,560) | 0 (0) / 1,403 / 21,065 |
 | Red team (845) | 0 (0) / 556 / 8,680 |
-| Lists with a fingerprint line (1,200) | 397 (0) / 963 / 16,177 |
-| Red team with a fingerprint line (838) | 478 (0) / 586 / 8,686 |
+| Lists with a fingerprint line (1,200) | 397 (0) / 970 / 16,417 |
+| Red team with a fingerprint line (838) | 478 (0) / 593 / 8,894 |
 
 0 wrong seeds among 2,449 verified over all benches; at most 3 seeds are
 compared with the fingerprint per photo, so that a wrong seed is verified by
 chance with a probability of at most 9.98e-7 per photo. On a Raspberry Pi
-Zero, reading alone: 12-word cards 5.9 to 8.7 s, 12-word lists verified by
-their fingerprint 13.6 to 24.5 s, 17 real photos 5.9 to 55.2 s (median
+Zero, reading alone: 12-word cards 5.9 to 8.6 s, 12-word lists verified by
+their fingerprint 13.6 to 25.2 s, 17 real photos 5.9 to 54.2 s (median
 13.6 s).
 
 **Limits.** A seed is announced as verified only when the fingerprint written

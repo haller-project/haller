@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Weights | `haller-1-capitals.npz`, `haller-1-lowercase.npz`, `haller-1-detector.npz`, `haller-1-fingerprint.npz` (digests in `weights.sha256`) |
-| Engine | SeedSigner fork, branch `handwritten-seed` as published with this release: `helpers/handwriting/__init__.py` SHA-256 `5ef71318f76747206bf982712259e45f0bdd3083da59e87a955c8ea6d0cd5429`, `detector.py` `2edccfe658c70c034928d19a5f2de7d85039e658762120053f9b1ed1fc072a4b`, `fingerprint.py` `410234a733ee2fea818534898d5ce9db6c5d20b3a8bcbe6af25a4f9509dc3c00`, `decoder.py` `2c0aaa24ea0a2477e6b29ce2d37ef24f73debb441684e7199145070aa28fdaf7` |
+| Engine | SeedSigner fork, branch `handwritten-seed` as published with this release: `helpers/handwriting/__init__.py` SHA-256 `963e192eff140c40ceeb8934ce1882158921d28cb051d2254c9d485223a5446c`, `detector.py` `3b00fa45a4ce78740eef2881396b56525f619225b81241f35063ee111b962495`, `fingerprint.py` `410234a733ee2fea818534898d5ce9db6c5d20b3a8bcbe6af25a4f9509dc3c00`, `decoder.py` `2c0aaa24ea0a2477e6b29ce2d37ef24f73debb441684e7199145070aa28fdaf7` |
 | Inference | SeedSigner's C library (16-bit integers); benches on x86 (Intel Xeon 8375C, Python 3.12, numpy 2.5, Pillow 13.0), timings on a Raspberry Pi Zero |
 | Date of the runs | 2026-11-22 |
 
@@ -42,26 +42,26 @@ Verified (wrong) / exact / words / not found:
 | Bench | Class | Pages | Result |
 |---|---|---:|---|
 | Real photos, test half | test | 35 | 0 (0) / 30 / 485 / 1 |
-| Blank cards of other makers photographed, writing simulated | test | 70 | 0 (0) / 34 / 716 / 12 |
+| Blank cards of other makers photographed, writing simulated | test | 70 | 0 (0) / 34 / 716 / 11 |
 | Hard real photos taken by the device | test | 10 | 4 (0) / 7 / 99 / 1 |
-| Usual simulated photos | test | 1,560 | 0 (0) / 1,403 / 21,065 / 45 |
-| Badly framed | test | 1,167 | 0 (0) / 641 / 11,699 / 176 |
+| Usual simulated photos | test | 1,560 | 0 (0) / 1,403 / 21,065 / 44 |
+| Badly framed | test | 1,167 | 0 (0) / 641 / 11,699 / 172 |
 | Red team | test | 845 | 0 (0) / 556 / 8,680 / 47 |
-| Supports kept apart | test | 900 | 0 (0) / 277 / 6,446 / 272 |
-| Several columns | test | 240 | 0 (0) / 45 / 1,044 / 114 |
-| Tight columns | test | 200 | 0 (0) / 61 / 1,452 / 69 |
-| Lists with a fingerprint line | test | 1,200 | 397 (0) / 963 / 16,177 / 78 |
-| Red team with a fingerprint line | test | 838 | 478 (0) / 586 / 8,686 / 60 |
-| Numbered lists with a fingerprint line | test | 800 | 564 (0) / 639 / 10,377 / 58 |
-| Traps around the fingerprint line | test | 800 | 541 (0) / 578 / 8,154 / 130 |
-| Labels before the fingerprint | test | 400 | 97 (0) / 121 / 1,628 / 254 |
-| Abbreviated words (first 4 letters) | test | 400 | 0 (0) / 108 / 2,410 / 122 |
+| Supports kept apart | test | 900 | 0 (0) / 277 / 6,446 / 258 |
+| Several columns | test | 240 | 0 (0) / 45 / 1,044 / 113 |
+| Tight columns | test | 200 | 0 (0) / 61 / 1,441 / 68 |
+| Lists with a fingerprint line | test | 1,200 | 397 (0) / 970 / 16,417 / 57 |
+| Red team with a fingerprint line | test | 838 | 478 (0) / 593 / 8,894 / 39 |
+| Numbered lists with a fingerprint line | test | 800 | 564 (0) / 654 / 10,824 / 31 |
+| Traps around the fingerprint line | test | 800 | 541 (0) / 586 / 8,419 / 100 |
+| Labels before the fingerprint | test | 400 | 97 (0) / 127 / 1,700 / 248 |
+| Abbreviated words (first 4 letters) | test | 400 | 0 (0) / 109 / 2,422 / 116 |
 | Real photos, development half | tuning | 65 | 25 (0) / 53 / 771 / 2 |
-| Photos sent to the public test, before 2026-11-23 | tuning | 81 | 10 (0) / 62 / 1,085 / 6 |
-| Simulated tuning pages | tuning | 1,978 | 0 (0) / 792 / 16,753 / 419 |
-| Tuning lists with a fingerprint line | tuning | 779 | 296 (0) / 608 / 9,885 / 42 |
-| Tuning labels | tuning | 200 | 37 (0) / 44 / 592 / 143 |
-| Tuning abbreviated words | tuning | 200 | 0 (0) / 62 / 1,465 / 50 |
+| Photos sent to the public test, before 2026-11-23 | tuning | 81 | 10 (0) / 63 / 1,109 / 5 |
+| Simulated tuning pages | tuning | 1,978 | 0 (0) / 793 / 16,794 / 397 |
+| Tuning lists with a fingerprint line | tuning | 779 | 296 (0) / 611 / 10,001 / 32 |
+| Tuning labels | tuning | 200 | 37 (0) / 50 / 678 / 134 |
+| Tuning abbreviated words | tuning | 200 | 0 (0) / 63 / 1,459 / 44 |
 
 Simulated pages drawn upside down count as read wrong: 359 of them (180
 simulated tuning pages, 106 badly framed, 38 supports kept apart, 11 tight
@@ -125,6 +125,7 @@ Measured on the frozen benches against the engine before each change:
 | At most 3 seeds compared with the fingerprint per photo, both searches included | the bound above; same readings on the frozen benches |
 | No orientation search (the page is read as given) | the 359 upside-down simulated pages above; elsewhere no loss, +12 exact; real photos read the same |
 | Order of two bands of words offered without line numbers; low trust when the order stays ambiguous | same readings on every bench; 98 readings whose order was ambiguous move from medium to low trust |
+| A fingerprint line that matches no seed read is taken out and the list kept, unverified, at low trust | +6 to +15 exact on the fingerprint, trap and label benches, +1 exact on the photos sent to the public test; test photos read the same; no verified seed gained or lost |
 
 ## Trust gauge
 
@@ -146,11 +147,11 @@ device, 4 phone or web photos):
 
 | Photos | Time |
 |---|---|
-| 12-word cards (4) | 5.9 to 8.7 s |
-| 12-word lists verified by their fingerprint (7) | 13.6 to 24.5 s |
-| Other 12-word lists (5) | 6.8 to 15.7 s |
-| A list in three columns | 55.2 s |
-| All 17 real photos | 5.9 to 55.2 s, median 13.6 s |
+| 12-word cards (4) | 5.9 to 8.6 s |
+| 12-word lists verified by their fingerprint (7) | 13.6 to 25.2 s |
+| Other 12-word lists (5) | 6.8 to 15.6 s |
+| A list in three columns | 54.2 s |
+| All 17 real photos | 5.9 to 54.2 s, median 13.6 s |
 
 ## Word strips
 

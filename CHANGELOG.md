@@ -8,7 +8,7 @@ the evaluation report (see `RELEASING.md`).
 
 ## Unreleased
 
-## haller-1 (TBD: date of publication)
+## haller-1 (2026-11-22)
 
 First release.
 
