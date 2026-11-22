@@ -91,10 +91,11 @@ if [ -z "$COMMIT" ]; then
 fi
 COMMIT=$(git rev-parse --verify "$COMMIT^{commit}")
 [ "$(git rev-parse "$COMMIT^{tree}")" = "$HEAD_TREE" ] || die "commit $COMMIT does not have the tree of HEAD"
-BAD=$(git log --format='%H %an <%ae> %cn <%ce> %ad %cd' --date=raw "$COMMIT" \
-      | awk -v id="$IDENTITY_NAME <$IDENTITY_EMAIL>" '{
-            line = $0; sub(/^[^ ]+ /, "", line)
-            if (index(line, id " " id " ") != 1 || $(NF-2) != "+0000" || $NF != "+0000") print $1 }')
+# The identity is the project e-mail address, for author and committer (the displayed name has two spellings in the
+# history, "pizza-bitcoiner" and "Pizza Bitcoiner", same address).
+BAD=$(git log --format='%H %ae %ce %ad %cd' --date=raw "$COMMIT" \
+      | awk -v e="$IDENTITY_EMAIL" '{
+            if ($2 != e || $3 != e || $5 != "+0000" || $7 != "+0000") print $1 }')
 if [ -n "$BAD" ]; then
     if [ "$DRY_RUN" = 1 ]; then warn "commits outside the project identity or not in UTC (first: $(echo "$BAD" | head -1 | cut -c1-12)); a pushed commit is required"
     else die "commits outside the project identity or not in UTC, first: $(echo "$BAD" | head -1)"; fi
