@@ -48,33 +48,37 @@ mandatory review of every word by the user against the paper.
 fonts and BIP39 words generated in the hands of GNHK writers by Emuru; see
 [Data](#data) and [Data sources and licenses](#data-sources-and-licenses).
 
-**Results** of the engine of the SeedSigner fork as of 2026-11-22 on full
-photos (seeds verified by their fingerprint (wrong ones) / exact seeds /
-words read correctly; full report in
+**Results** of the engine of the SeedSigner fork as published with this
+release on full photos (seeds verified by their fingerprint (wrong ones) /
+exact seeds / words read correctly; full report in
 [`releases/haller-1/EVALUATION.md`](releases/haller-1/EVALUATION.md)):
 
 | Photos | Result |
 |---|---|
 | Real photos, test half (35) | 0 (0) / 30 / 485 |
 | Hard real photos taken by the device (10) | 4 (0) / 7 / 99 |
-| Blank cards of other makers photographed, writing simulated (70) | 0 (0) / 21 / 417 |
-| Usual simulated photos (1,560) | 0 (0) / 1,402 / 21,048 |
-| Red team (845) | 0 (0) / 554 / 8,635 |
-| Lists with a fingerprint line (1,200) | 391 (0) / 963 / 16,147 |
-| Red team with a fingerprint line (838) | 475 (0) / 586 / 8,677 |
+| Blank cards of other makers photographed, writing simulated (70) | 0 (0) / 34 / 716 |
+| Usual simulated photos (1,560) | 0 (0) / 1,403 / 21,065 |
+| Red team (845) | 0 (0) / 556 / 8,680 |
+| Lists with a fingerprint line (1,200) | 397 (0) / 963 / 16,177 |
+| Red team with a fingerprint line (838) | 478 (0) / 586 / 8,686 |
 
-0 wrong seeds among 2,376 verified over all benches. On a Raspberry Pi Zero,
-application running: 12-word cards 8.9 to 13.8 s, 12-word lists verified by
-their fingerprint 22.0 to 25.1 s, 16 real photos 8.9 to 77.5 s (median
-20.6 s).
+0 wrong seeds among 2,449 verified over all benches; at most 3 seeds are
+compared with the fingerprint per photo, so that a wrong seed is verified by
+chance with a probability of at most 9.98e-7 per photo. On a Raspberry Pi
+Zero, reading alone: 12-word cards 5.9 to 8.7 s, 12-word lists verified by
+their fingerprint 13.6 to 24.5 s, 17 real photos 5.9 to 55.2 s (median
+13.6 s).
 
 **Limits.** A seed is announced as verified only when the fingerprint written
 with its words is read and matches them; any other reading can be wrong even
 with a valid checksum and has to be compared with the paper. Capitals are
-read best; lowercase and cursive less well (115 test photos: 35 of 54 seeds
-exact in capitals, 15 of 37 in lowercase, 5 of 20 in neat cursive). Part of
-a plain sheet can be taken for a seed card; a fingerprint written to the
-right of the last word is read as part of it. Blurry photos, very small
+read best; lowercase and cursive less well (115 test photos: 41 of 54 seeds
+exact in capitals, 21 of 37 in lowercase, 6 of 20 in neat cursive). The page
+must be upright in the photo (no page upside down or turned). Two bands of
+words without line numbers whose order stays ambiguous get the low trust
+level. Words abbreviated to 4 letters are read, less well than full words.
+Part of a plain sheet can be taken for a seed card. Blurry photos, very small
 writing, lists cut by the frame and layouts in three columns or more often
 fail. Only English BIP39 words are read. The real test photos are few; the
 measurements rely mostly on simulated photos.

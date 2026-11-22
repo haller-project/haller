@@ -32,8 +32,9 @@ the same bits.
 
 ## Engine measured
 
-`handwritten-seed` branch of the fork as of 2026-11-22: detector on every
-photo, fingerprint check (probability of a chance match at most 1e-6 per
+`handwritten-seed` branch of the fork as published with this release: detector
+on every photo, fingerprint check (at most 3 seeds compared with the
+fingerprint per photo, a chance match of a wrong seed at most 9.98e-7 per
 photo), four-level trust gauge, and the changes of 2026-11-22:
 
 - **labels and fingerprint rows**: one or two rows at the top or bottom of a
@@ -46,10 +47,20 @@ photo), four-level trust gauge, and the changes of 2026-11-22:
 - **number check**: line numbers read with probability 0.9 or more and linked
   to their line that contradict the order of the words make the list
   incoherent; it is read again as one list, else every word is uncertain;
-  word crops are read once per photo across the searches.
+  word crops are read once per photo across the searches;
+- **fingerprint at the end of a row**: a fingerprint written after the first
+  or last word of a column, on its row, is cut off that word and checked; a
+  single line outside the words is checked as an optional fingerprint;
+- **abbreviated words**: words written with their first 4 letters only (as
+  on metal plates) are read, a list mostly abbreviated is read again as such;
+- **orientation**: the page is read as given (EXIF orientation only), slants
+  and perspective followed; no search for a page upside down or turned;
+- **order of two bands**: two bands of words without line numbers are also
+  read band by band; when the order stays ambiguous, the trust is low.
 
-Each change was kept only with no wrong seed verified on any bench and no
-loss of more than 1 % of exact seeds by writing or by support.
+Each change was kept only with no wrong seed verified on any bench, no loss
+of more than 1 % of exact seeds by writing or by support, no case of the
+regression bench of the fork broken, and no slowdown measured on a Pi Zero.
 
 ## Results
 
@@ -60,45 +71,42 @@ threshold or a rule.
 | Photos | Result |
 |---|---|
 | Real photos, test half (35) | 0 (0) / 30 / 485 / 1 |
-| Blank cards of other makers photographed, writing simulated (70) | 0 (0) / 21 / 417 / 23 |
+| Blank cards of other makers photographed, writing simulated (70) | 0 (0) / 34 / 716 / 12 |
 | Hard real photos taken by the device (10) | 4 (0) / 7 / 99 / 1 |
-| Usual simulated photos (1,560) | 0 (0) / 1,402 / 21,048 / 45 |
-| Badly framed (1,167) | 0 (0) / 723 / 13,135 / 176 |
-| Red team (845) | 0 (0) / 554 / 8,635 / 47 |
-| Supports kept apart (900) | 0 (0) / 287 / 6,774 / 272 |
-| Several columns (240) | 0 (0) / 44 / 979 / 114 |
-| Tight columns (200) | 0 (0) / 61 / 1,520 / 69 |
-| Lists with a fingerprint line (1,200) | 391 (0) / 963 / 16,147 / 78 |
-| Red team with a fingerprint line (838) | 475 (0) / 586 / 8,677 / 60 |
-| Numbered lists with a fingerprint line (800) | 539 (0) / 639 / 10,370 / 58 |
-| Traps around the fingerprint line (800) | 516 (0) / 576 / 8,141 / 130 |
-| Labels before the fingerprint (400) | 94 (0) / 121 / 1,616 / 254 |
+| Usual simulated photos (1,560) | 0 (0) / 1,403 / 21,065 / 45 |
+| Badly framed (1,167) | 0 (0) / 641 / 11,699 / 176 |
+| Red team (845) | 0 (0) / 556 / 8,680 / 47 |
+| Supports kept apart (900) | 0 (0) / 277 / 6,446 / 272 |
+| Several columns (240) | 0 (0) / 45 / 1,044 / 114 |
+| Tight columns (200) | 0 (0) / 61 / 1,452 / 69 |
+| Lists with a fingerprint line (1,200) | 397 (0) / 963 / 16,177 / 78 |
+| Red team with a fingerprint line (838) | 478 (0) / 586 / 8,686 / 60 |
+| Numbered lists with a fingerprint line (800) | 564 (0) / 639 / 10,377 / 58 |
+| Traps around the fingerprint line (800) | 541 (0) / 578 / 8,154 / 130 |
+| Labels before the fingerprint (400) | 97 (0) / 121 / 1,628 / 254 |
+| Abbreviated words (400) | 0 (0) / 108 / 2,410 / 122 |
 
-**0 wrong seeds among 2,376 verified**: 2,019 on the test benches above and
-357 on the tuning benches (real photos of the development half and photos
-sent to the public test: 32 verified, 110 exact of 140).
+Upside-down simulated pages (359 over the benches) count as read wrong: the
+engine no longer turns a page.
 
-Effect of the changes of 2026-11-22 on exact / verified seeds, all benches:
-labels and fingerprint rows, the real photo that prompted it verified and
-no loss; ink of the rows, +220 exact and +208 verified over 11,383 pages, 3
-isolated losses; number check, +1 to +2 verified on the fingerprint and trap
-benches. Photos sent to the public test, read again with each engine: ink of
-the rows, 54 to 57 exact and 5 to 7 verified of 77 photos; number check, 61
-to 62 exact and 8 to 9 verified of 82 photos.
+**0 wrong seeds among 2,449 verified**: 2,081 on the test benches above (95 %
+upper bound 0.14 %) and 368 on the tuning benches (real photos of the
+development half and photos sent to the public test: 35 verified, 115 exact
+of 146).
 
 Exact seeds by writing on the 115 test photos (real test half, cards with
-simulated writing, hard device photos): capitals 35 of 54, lowercase 15 of
-37, neat cursive 5 of 20, fast cursive 1 of 2.
+simulated writing, hard device photos): capitals 41 of 54, lowercase 21 of
+37, neat cursive 6 of 20, fast cursive 1 of 2.
 
 Word strips, most probable BIP39 word, quantized networks run by the C
 library: 96.32 % (capitals expert) and 96.13 % (lowercase expert) of the
 9,156 simulated evaluation strips regenerated by
 `recipes/haller-1/evalsim/regenerate.sh`.
 
-**Raspberry Pi Zero**, application running, 16 real photos (13 taken by the
-device): 8.9 to 77.5 s, median 20.6 s; 12-word cards 8.9 to 13.8 s, 12-word lists
-verified by their fingerprint 22.0 to 25.1 s, a list in three columns
-77.5 s.
+**Raspberry Pi Zero**, reading alone (the running application adds about
+5 %), 17 real photos (13 taken by the device): 5.9 to 55.2 s, median 13.6 s;
+12-word cards 5.9 to 8.7 s, 12-word lists verified by their fingerprint 13.6
+to 24.5 s, a list in three columns 55.2 s.
 
 ## Test set
 
@@ -113,13 +121,19 @@ repository).
 
 - **Cursive and lowercase** are read less well than capitals (see above);
   fast cursive worst.
+- **Orientation**: the page must be upright in the photo; a page upside down
+  or turned a quarter turn is not read (no wrong reading: the page is
+  not found).
+- **Two bands of words without numbers**: when both orders give a plausible
+  seed and no fingerprint decides, the trust is low and every word is to be
+  compared; write the line numbers or the fingerprint.
+- **Abbreviated words**: lists written with 4-letter abbreviations are read
+  less well than full words (108 of 400 test pages exact); short words in
+  spaced capitals are often not found.
 - **Fake cards**: part of a plain sheet can be taken for a seed card; its
   words are then read as another document and every word is uncertain. A
   rule on the shape of the card kernel was measured and left off: it freed
   the words of real cards cut by the frame of the photo.
-- **Fingerprint beside the last word**: a fingerprint written on the line of
-  the last word, to its right, is read as part of that word; the seed is not
-  verified.
 - Without a matching fingerprint, the checksum and the networks can agree on
   a wrong seed (truncated words, look-alike words, column order); the review
   against the paper is required.

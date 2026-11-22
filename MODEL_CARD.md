@@ -85,7 +85,8 @@ are published. The test set is not (see [Test set](#test-set)). Policy:
 
 Full report, with the protocol and every bench:
 [`releases/haller-1/EVALUATION.md`](releases/haller-1/EVALUATION.md).
-Engine: `handwritten-seed` branch of the SeedSigner fork as of 2026-11-22.
+Engine: `handwritten-seed` branch of the SeedSigner fork as published with
+this release (measured on 2026-11-22).
 
 Definitions (per page): **verified**, the fingerprint written with the words
 is read and matches the seed, the only state announced as right; **wrong
@@ -101,25 +102,32 @@ Verified (wrong) / exact / words / pages not found:
 | Bench | Pages | Result |
 |---|---:|---|
 | Real photos, test half | 35 | 0 (0) / 30 / 485 / 1 |
-| Blank cards of other makers photographed, writing simulated | 70 | 0 (0) / 21 / 417 / 23 |
+| Blank cards of other makers photographed, writing simulated | 70 | 0 (0) / 34 / 716 / 12 |
 | Hard real photos taken by the device | 10 | 4 (0) / 7 / 99 / 1 |
-| Usual simulated photos | 1,560 | 0 (0) / 1,402 / 21,048 / 45 |
-| Badly framed | 1,167 | 0 (0) / 723 / 13,135 / 176 |
-| Red team | 845 | 0 (0) / 554 / 8,635 / 47 |
-| Lists with a fingerprint line | 1,200 | 391 (0) / 963 / 16,147 / 78 |
-| Red team with a fingerprint line | 838 | 475 (0) / 586 / 8,677 / 60 |
-| Numbered lists with a fingerprint line | 800 | 539 (0) / 639 / 10,370 / 58 |
-| Traps around the fingerprint line | 800 | 516 (0) / 576 / 8,141 / 130 |
+| Usual simulated photos | 1,560 | 0 (0) / 1,403 / 21,065 / 45 |
+| Badly framed | 1,167 | 0 (0) / 641 / 11,699 / 176 |
+| Red team | 845 | 0 (0) / 556 / 8,680 / 47 |
+| Lists with a fingerprint line | 1,200 | 397 (0) / 963 / 16,177 / 78 |
+| Red team with a fingerprint line | 838 | 478 (0) / 586 / 8,686 / 60 |
+| Numbered lists with a fingerprint line | 800 | 564 (0) / 639 / 10,377 / 58 |
+| Traps around the fingerprint line | 800 | 541 (0) / 578 / 8,154 / 130 |
+| Abbreviated words (first 4 letters) | 400 | 0 (0) / 108 / 2,410 / 122 |
 
-**0 wrong seeds among 2,376 verified** (2,019 on the test benches, 95 %
-upper bound 0.15 %; 357 on the tuning benches). The fingerprint check bounds
-a chance match of a wrong seed at 1e-6 per photo.
+Upside-down simulated pages count as read wrong (the engine no longer turns
+a page; 106 of the badly framed photos).
+
+**0 wrong seeds among 2,449 verified** (2,081 on the test benches, 95 %
+upper bound 0.14 %; 368 on the tuning benches). A seed matches the
+fingerprint line by chance with a probability of at most
+1 / (7e-4 x 2^32) = 3.33e-7, whatever the calibration of the networks, and
+at most 3 seeds are compared with the fingerprint per photo, both searches
+included: at most 9.98e-7 per photo.
 
 ### Results by writing
 
 115 test photos with real backgrounds (real test half, cards with simulated
-writing, hard device photos), exact seeds: capitals 35 of 54, lowercase 15 of
-37, neat cursive 5 of 20, fast cursive 1 of 2.
+writing, hard device photos), exact seeds: capitals 41 of 54, lowercase 21 of
+37, neat cursive 6 of 20, fast cursive 1 of 2.
 
 ### Test set
 
@@ -146,15 +154,16 @@ Most probable BIP39 word, quantized networks run by the C library, on the
 
 Announced share of fully right seeds: level 3 at least 90 %, level 2 at least
 40 %, chosen on simulated tuning pages; the measured share is at or above it
-on every bench but one (red team with a fingerprint line, level 2: 22 of 66,
-not significant).
+on every bench but two, neither difference significant (red team with a
+fingerprint line, level 2: 19 of 62; traps around the fingerprint line,
+level 3: 3 of 4). A reading whose order stays ambiguous gets level 1.
 
 ### Speed
 
-Raspberry Pi Zero (ARMv6, single core), application running, SeedSigner's C
-library, 16 real photos (13 taken by the device): 8.9 to 77.5 s, median
-20.6 s; 12-word cards 8.9 to 13.8 s; 12-word lists verified by their
-fingerprint 22.0 to 25.1 s.
+Raspberry Pi Zero (ARMv6, single core), SeedSigner's C library, reading alone
+(the running application adds about 5 %), 17 real photos (13 taken by the
+device): 5.9 to 55.2 s, median 13.6 s; 12-word cards 5.9 to 8.7 s; 12-word
+lists verified by their fingerprint 13.6 to 24.5 s.
 
 ## Known limitations
 
@@ -165,9 +174,12 @@ fingerprint 22.0 to 25.1 s.
   trust level. The review against the paper is required.
 - **Fake cards.** Part of a plain sheet can be taken for a seed card; its
   words are then read as another document and every word is uncertain.
-- **Fingerprint beside the last word.** A fingerprint written on the line of
-  the last word, to its right, is read as part of that word; the seed is not
-  verified.
+- **Orientation.** The page must be upright in the photo: slants and
+  perspective are followed, a page upside down or turned a quarter turn is
+  not read.
+- **Abbreviated words.** Words written with their first 4 letters are read,
+  less well than full words (108 of 400 abbreviated test pages exact); short
+  words in spaced capitals are often not found.
 - **Faint letters.** The normalization keeps ink above a share of the darkest
   stroke; letters written with a skipping pen or very light pressure at the
   start or end of a word can vanish, and the rest of the word can be read with
@@ -179,12 +191,14 @@ fingerprint 22.0 to 25.1 s.
 - **Fast cursive** is read worst; lowercase and cursive less well than
   capitals; uncertain words are marked.
 - **Two-column lists.** The order (column by column or row by row) is decided
-  by the line numbers when they are written; when both orders give a
-  plausible seed, every word is marked uncertain. Columns written very close
+  by the line numbers when they are written; two bands of words without
+  numbers are also read band by band; when two orders give a plausible seed
+  and neither the numbers nor the fingerprint choose, the trust is low and
+  every word is to be compared. Columns written very close
   together can be read as one.
 - **Layouts with three columns or more and several documents in the photo**
   often fail; **seed cards of other makers** are read less well than
-  SeedSigner's (21 of 70 exact on the bench of photographed blank cards with
+  SeedSigner's (34 of 70 exact on the bench of photographed blank cards with
   simulated writing).
 - **Look-alike words** (shop and ship, review and renew, item and ten): a
   confident wrong reading is possible when the writing is ambiguous.
