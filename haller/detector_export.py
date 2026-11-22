@@ -93,7 +93,8 @@ def main():
         maps = c_maps(lib, weights, image)
         reference = integer_forward(q, image)
         gap = float(np.abs(maps - reference).max())
-        assert gap <= REFERENCE_TOLERANCE, (label, gap)
+        if gap > REFERENCE_TOLERANCE:
+            raise ValueError(f"image {label}: C maps differ from the integer reference by {gap}")
         vectors["images"].append({
             "label": label,
             "image": base64.b64encode(zlib.compress(image.tobytes(), 9)).decode(),

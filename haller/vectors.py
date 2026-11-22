@@ -107,7 +107,8 @@ def float_scores(float_weights: dict, inks: list) -> list[np.ndarray]:
 def check_float(entries: list[dict], float_weights: dict) -> dict:
     """
     Agreement of the C outputs (entries of the vectors file) with the float
-    model; raises AssertionError beyond the tolerances above.
+    model; raises ValueError beyond the tolerances above (not an assert,
+    which python -O would remove).
     """
     checked, deltas = 0, [0.0]
     for e, f in zip(entries, float_scores(float_weights, [decode_ink(e) for e in entries])):
@@ -115,10 +116,12 @@ def check_float(entries: list[dict], float_weights: dict) -> dict:
         best = int(order[0])
         if f[best] < FLOAT_MIN_SCORE or f[best] - f[order[1]] < FLOAT_MARGIN:
             continue
-        assert e["words"][0] == WORDLIST[best], f"strip {e['label']!r}: {e['words'][0]} (C), {WORDLIST[best]} (float)"
+        if e["words"][0] != WORDLIST[best]:
+            raise ValueError(f"strip {e['label']!r}: {e['words'][0]} (C), {WORDLIST[best]} (float)")
         checked += 1
         deltas.append(abs(e["scores"][0] - float(f[best])))
-    assert max(deltas) <= SCORE_TOLERANCE, f"score difference {max(deltas):.3f}"
+    if max(deltas) > SCORE_TOLERANCE:
+        raise ValueError(f"score difference {max(deltas):.3f}")
     return dict(strips_checked=checked, max_score_difference=round(max(deltas), 4))
 
 

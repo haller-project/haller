@@ -34,6 +34,8 @@ import argparse
 import base64
 import io
 import json
+import sys
+import urllib.parse
 import urllib.request
 
 import numpy as np
@@ -191,7 +193,17 @@ def ask(url: str, images: list[str], word: str) -> list[float]:
 
 
 
+def is_local(url: str) -> bool:
+    """True if `url` names this machine (localhost or a loopback address)."""
+    host = urllib.parse.urlsplit(url).hostname or ""
+    return host == "localhost" or host == "::1" or host.startswith("127.")
+
+
+
 def verify_command(a):
+    if not is_local(a.url):
+        print(f"warning: --url {a.url} is not on this machine: every ink map of {a.near} and its word are sent to it",
+              file=sys.stderr, flush=True)
     d = np.load(a.near)
     x, w, y = d["x"], d["w"], d["y"]
     keep = []
