@@ -62,7 +62,7 @@ photo), four-level trust gauge, and the changes of 2026-11-22:
 
 Each change was kept only with no wrong seed verified on any bench, no loss
 of more than 1 % of exact seeds by writing or by support, no case of the
-regression bench of the fork broken (regression set to be published), and no slowdown measured on a Pi Zero.
+regression bench of the fork broken, and no slowdown measured on a Pi Zero.
 
 ## Results
 

@@ -8,6 +8,9 @@ the evaluation report (see `RELEASING.md`).
 
 ## Unreleased
 
+- Regression set of the SeedSigner fork published (`tests/handwriting_regression`, 28 cases on pages drawn
+  for it alone); the Haller-1 release notes, written before, say it was still to be published.
+
 ## haller-1 (2026-11-22)
 
 First release.
