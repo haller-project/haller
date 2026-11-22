@@ -32,7 +32,7 @@ the same (identical syntax trees).
   more exact seeds and words on the real photos, a trust gauge never more
   optimistic than announced, no loss of more than 1 % of exact seeds by
   writing or by support, no case of the regression bench broken
-  (`tests/handwriting_regression` of the fork), and no slowdown measured on a
+  of the fork (regression set to be published), and no slowdown measured on a
   Pi Zero.
 
 ## Results
