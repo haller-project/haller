@@ -148,8 +148,9 @@ through the same code; a change to `preprocess.py` requires regenerating all dat
 ### Datasets of the release
 
 Published with the Haller-1 release under the MIT License, each with a
-README and `SHA256SUMS`: `haller-1-detector-inputs` (the 1,213 input files
-of the detector recipe), `haller-blank-supports` (162 photos of blank
+README and `SHA256SUMS`: `haller-1-detector-inputs` (1,168 of the 1,213
+input files of the detector recipe; 45 withheld, listed in its README),
+`haller-blank-supports` (155 photos of blank
 writing supports, full resolution, masks and annotations),
 `haller-blank-cards` (blank printed seed cards of several makers and their
 variants; the printed designs remain the property of their authors), and
