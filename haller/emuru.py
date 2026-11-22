@@ -11,9 +11,12 @@ same chain as the synthetic data: placed on a line with two other words of the
 same style as neighbors (or none), photographed, normalized.
 
 Generation needs a GPU (torch, torchvision, transformers < 5, diffusers,
-einops); the raw generated words are kept per style in RAW_DIR, so an
-interrupted run resumes where it stopped (with the same arguments: the words
-given to each style depend on SEED, --styles and --per-style).
+einops; versions in requirements-emuru-lock.txt). The model's code is in
+emuru_model.py, and its weights are read at a fixed commit of the Hugging Face
+Hub: no code from the Hub is run. The raw generated words are kept per style
+in RAW_DIR, so an interrupted run resumes where it stopped; each file holds a
+key of the arguments that decide its words (SEED, BIP39 list, --styles,
+--per-style, --lower), and a run with other arguments stops on it.
 
     python -m haller.emuru OUT.npz GNHK_SPLIT_DIR RAW_DIR SEED \
         --bip39 data/bip39_english.txt --styles 500 --per-style 60 --batch 12
@@ -22,6 +25,7 @@ Output: x (N, 32, 256) uint8 ink maps padded with zeros, w (N,) widths,
 y (N,) labels, style (N,) style index (GNHK page).
 """
 import argparse
+import hashlib
 import json
 import os
 import time
@@ -136,9 +140,11 @@ class Emuru:
 
     def __init__(self, device: str = "cuda"):
         import torch
-        from transformers import AutoModel
+        # the model's code is part of haller (emuru_model.py), and every Hugging Face repository is read at a fixed
+        # commit: no code from the Hub is run
+        from .emuru_model import MODEL, REVISIONS, Emuru as EmuruModel
         self.torch = torch
-        self.model = AutoModel.from_pretrained("blowing-up-groundhogs/emuru", trust_remote_code=True)
+        self.model = EmuruModel.from_pretrained(MODEL, revision=REVISIONS[MODEL])
         self.model.T5.to(device, torch.bfloat16)
         self.model.to(device)
         self.model.eval()
@@ -202,10 +208,22 @@ def is_written(a: np.ndarray) -> bool:
 
 
 
+def run_key(seed: int, words: list, count: int, per_style: int, cases: tuple) -> str:
+    """SHA-256 of the arguments that decide which words each style writes:
+    stored in every RAW_DIR/<n>.npz, so that a run resumes only on files
+    written with the same arguments."""
+    fields = {"seed": seed, "words": hashlib.sha256("\n".join(words).encode()).hexdigest(), "styles": count,
+              "per_style": per_style, "cases": list(cases)}
+    return hashlib.sha256(json.dumps(fields, sort_keys=True).encode()).hexdigest()
+
+
+
 def generate(styles: list, words: list, raw_dir: str, per_style: int, batch: int, rng: np.random.Generator,
-             cases: tuple = ("lower", "upper")):
+             cases: tuple = ("lower", "upper"), key: str = None):
     """Writes RAW_DIR/<style index>.npz: x (n, 64, W) generated words padded
-    with white, w (n,) widths, text (n,) as written (case kept)."""
+    with white, w (n,) widths, text (n,) as written (case kept), and `key`
+    (run_key). A file already there is kept only if it holds the same key
+    and style page: otherwise the run stops (ValueError)."""
     os.makedirs(raw_dir, exist_ok=True)
     # every (word, case) pair about the same number of times, spread over the styles
     pairs = [(w, case) for w in words for case in cases]
@@ -216,6 +234,12 @@ def generate(styles: list, words: list, raw_dir: str, per_style: int, batch: int
         chunk = order[s * per_style:(s + 1) * per_style]
         path = os.path.join(raw_dir, f"{s}.npz")
         if os.path.exists(path):
+            with np.load(path) as d:
+                found = str(d["key"]) if "key" in d.files else None
+                found_page = str(d["page"])
+            if key is not None and (found != key or found_page != str(page)):
+                raise ValueError(f"{path} was written by another run (key {found}, page {found_page}; this run: "
+                                 f"key {key}, page {page}): use an empty RAW_DIR or the arguments of that run")
             continue
         model = model or Emuru()
         texts = [pairs[i][0].upper() if pairs[i][1] == "upper" else pairs[i][0] for i in chunk]
@@ -238,7 +262,8 @@ def generate(styles: list, words: list, raw_dir: str, per_style: int, batch: int
         for i, a in enumerate(out):
             x[i, :, :a.shape[1]] = a
         np.savez_compressed(path + ".tmp.npz", x=x, w=np.array([a.shape[1] for a in out], np.int16),
-                            text=np.array(kept), page=page, style_text=transcription, style=np.asarray(image))
+                            text=np.array(kept), page=page, style_text=transcription, style=np.asarray(image),
+                            **({} if key is None else {"key": key}))
         os.replace(path + ".tmp.npz", path)  # a run killed while writing leaves no truncated file
         print(f"style {s + 1}/{len(styles)} {page}: {len(out)}/{len(texts)} kept, "
               f"{done / (time.time() - t0):.1f} words/s", flush=True)
@@ -306,7 +331,9 @@ def main():
     pages = open(a.pages).read().split() if a.pages else None
     styles = pick_styles(a.split_dir, a.styles, rng, pages)
     print(len(styles), "styles", flush=True)
-    generate(styles, words, a.raw_dir, a.per_style, a.batch, rng, ("lower",) if a.lower else ("lower", "upper"))
+    cases = ("lower",) if a.lower else ("lower", "upper")
+    generate(styles, words, a.raw_dir, a.per_style, a.batch, rng, cases,
+             key=run_key(a.seed, words, len(styles), a.per_style, cases))
     if a.generate_only:
         return
     samples, labels, style_ids = compose(a.raw_dir, len(styles), np.random.default_rng(a.seed + 1))

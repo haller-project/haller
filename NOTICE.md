@@ -14,7 +14,7 @@ any copy of the weights.
 | EMNIST (from NIST Special Database 19) | no license stated; citation requested by the authors; NIST asks to be acknowledged as the source | letters of the synthetic words and pages | nothing; the simulated evaluation strips derived from the test split are regenerated from the official archive by `recipes/haller-1/evalsim/regenerate.sh` |
 | Google Fonts, 294 font files | SIL Open Font License 1.1 | rendering of synthetic words and pages | no font file |
 | Google Fonts, 18 font files | Apache License 2.0 | rendering of synthetic words and pages | no font file |
-| Emuru model (`blowing-up-groundhogs/emuru`) | MIT | generation of BIP39 words in the style of GNHK writers (lowercase expert) | generated word images in `recipes/haller-1/data/emuru_*.npz` |
+| Emuru model (`blowing-up-groundhogs/emuru`) | MIT | generation of BIP39 words in the style of GNHK writers (lowercase expert) | generated word images in `recipes/haller-1/data/emuru_*.npz`; the model's code, `haller/emuru_model.py` (copyright notice and license in the file) |
 | Qwen3-VL-4B-Instruct | Apache License 2.0 | check of the generated words (accept or reject) | nothing |
 | BIP39 word lists | as distributed with the MIT-licensed reference implementation (`trezor/python-mnemonic`) and `embit` | labels, dictionary decoding, non-target words | `data/bip39_english.txt`, `data/other_words.txt` (accents removed) |
 | SeedSigner | MIT | page detection and normalization code imported at data generation, C library for inference, printed seed card templates | `data/cards/card12.png`, `data/cards/card24.png` (fronts of the 12- and 24-word cards); `recipes/haller-1/evalsim/preprocess.py` (normalization code of the time) |
@@ -54,7 +54,10 @@ Software under the OFL.
 
 **Emuru.** Vittorio Pippi, Fabio Quattrini, Silvia Cascianelli, Alessio
 Tonioni, Rita Cucchiara, "Zero-Shot Styled Text Image Generation, but Make It
-Autoregressive", CVPR 2025. Model `blowing-up-groundhogs/emuru`, MIT License.
+Autoregressive", CVPR 2025. Model `blowing-up-groundhogs/emuru`, MIT License,
+Copyright (c) 2025 AImageLab; its code (configuration_emuru.py and
+modeling_emuru.py at commit c75b78dd6ea0306123ad5a12b18b9ae4a927e149) is copied
+into `haller/emuru_model.py`.
 The generated words take the handwriting style of GNHK pages (see GNHK above).
 
 **SeedSigner.** https://github.com/SeedSigner/seedsigner, MIT License. The

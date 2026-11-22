@@ -17,6 +17,8 @@ dependencies = [
 train = ["torch"]
 # names
 names = ["pyarrow"]
+# emuru (generated handwriting, GPU); versions in requirements-emuru-lock.txt
+emuru = ["torch", "torchvision", "transformers<5", "diffusers", "einops"]
 
 [build-system]
 requires = ["setuptools>=61"]

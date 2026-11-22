@@ -1,0 +1,12 @@
+# Versions of the Emuru generation of Haller-1 (haller.emuru, 18/11/2026), with the torch of requirements-lock.txt:
+#   pip install -c requirements-lock.txt -c requirements-emuru-lock.txt -e '.[train,emuru]'
+# The model's code is haller/emuru_model.py and its weights are read at the commits of emuru_model.REVISIONS.
+# torchvision: the version of the generation was not recorded; 0.29.2 is the one with which emuru_model was checked
+# against the code of the Hub on 22/11/2026 (same weights, same generated words, bit for bit, on a CPU).
+transformers==4.57.6
+diffusers==0.39.0
+einops==0.8.2
+huggingface_hub==0.36.2
+tokenizers==0.22.2
+safetensors==0.8.0
+torchvision==0.29.2

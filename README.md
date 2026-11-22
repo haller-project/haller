@@ -386,14 +386,19 @@ words that a trained model reads as their label (dictionary decoding, as on
 the device, or letter by letter).
 
 ```bash
-pip install torchvision 'transformers<5' diffusers einops   # with torch, on a GPU
+pip install -c requirements-lock.txt -c requirements-emuru-lock.txt -e '.[train,emuru]'   # on a GPU
 python -m haller.emuru emuru.npz GNHK/train emuru_raw 7 --bip39 data/bip39_english.txt \
     --styles 500 --per-style 60 --batch 12
 python -m haller.filter read capitals.npz emuru emuru.npz             # -> emuru_exact.npz
 ```
 
 Generation is about 3 words per second on an RTX 3060; `emuru_raw` keeps the
-generated words per style, so an interrupted run resumes where it stopped.
+generated words per style, so an interrupted run resumes where it stopped (each
+file holds a key of the seed, the word list and the counts: a run with other
+arguments stops on it). The code of the Emuru model is part of haller
+(`haller/emuru_model.py`, MIT, copied from the Hugging Face repository at the
+commit used for Haller-1), and every Hugging Face repository is read at a fixed
+commit (`emuru_model.REVISIONS`): no code is downloaded and run.
 
 ## Reproducing Haller-1: lowercase expert
 
